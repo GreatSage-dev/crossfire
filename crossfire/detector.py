@@ -1,6 +1,7 @@
 """TCAS invariant collision detector matching claims across agent boundaries."""
 
-from crossfire.models import CollisionVector, DetectorError, InvariantClaim
+from typing import Optional
+from crossfire.models import CollisionVector, DetectorError, InvariantClaim, TCASStatus
 
 
 def _is_async_domain(domain: str) -> bool:
@@ -26,29 +27,33 @@ def _is_raise_error_domain(domain: str) -> bool:
     return any(term in d for term in ("raise", "error", "except"))
 
 
+def _evaluate_tri_state(
+    claim_a: InvariantClaim, claim_b: InvariantClaim
+) -> tuple[TCASStatus, Optional[str]]:
+    """Determine TCAS status under the Tri-State Law (King's Court 3.0 Knot 3).
+
+    Returns (status, epistemic_reason). If confidence < 0.70, the system refuses
+    to guess and enters UNKNOWN_SUSPEND fail-closed.
+    """
+    min_confidence = min(claim_a.confidence, claim_b.confidence)
+    if min_confidence < 0.70:
+        return (
+            TCASStatus.UNKNOWN_SUSPEND,
+            f"Epistemic Refusal: Confidence ({min_confidence:.2f}) < 0.70 threshold. "
+            "Suspending execution fail-closed to avoid hallucinated contract guessing.",
+        )
+    return TCASStatus.COLLISION_HALT, None
+
+
 def detect_collisions(
     claims_a: list[InvariantClaim], claims_b: list[InvariantClaim]
 ) -> list[CollisionVector]:
     """Detect architectural and contract collisions between two sets of invariant claims.
 
-    Matches claims on the same symbol:
-    - Value domain drift: if contract_type is 'value_domain' and domains diverge
-      (e.g., float[0.0, 1.0] vs int[0, 100]), emits 'invariant_drift' with severity 0.95, halted=True.
-    - State lifecycle desync: if contract_type is 'state_lifecycle' and one is async while
-      the other is sync, emits 'lifecycle_desync' with severity 0.85, halted=True.
-    - Error contract divergence: if contract_type is 'error_contract' and one returns None while
-      the other catches/expects exception, emits 'contract_divergence' with severity 0.90, halted=True.
-    - Clean matching: returns an empty list when domains agree.
-
-    Args:
-        claims_a: Invariant claims from agent/scratchpad A.
-        claims_b: Invariant claims from agent/scratchpad B.
-
-    Returns:
-        A list of CollisionVector objects representing detected collisions.
-
-    Raises:
-        DetectorError: If collision analysis encounters inconsistent or corrupted claims.
+    Operates under King's Court 3.0 Tri-State Law:
+    - CLEAR: Invariant contracts match deterministically with high confidence.
+    - COLLISION_HALT: Invariant contracts conflict deterministically (exit code 2).
+    - UNKNOWN_SUSPEND: Claims exhibit ambiguous/low-confidence bounds; refuses to guess.
     """
     if not claims_a or not claims_b:
         return []
@@ -63,14 +68,12 @@ def detect_collisions(
             c_a_list = [c for c in claims_a if c.symbol == symbol]
             c_b_list = [c for c in claims_b if c.symbol == symbol]
 
-            # Find common contract types for this symbol
             types_a = {c.contract_type for c in c_a_list}
             types_b = {c.contract_type for c in c_b_list}
             common_types = sorted(types_a & types_b)
 
             if common_types:
                 for ctype in common_types:
-                    # Select claim with highest confidence (and lowest source line as deterministic tie-break)
                     claim_a = max(
                         [c for c in c_a_list if c.contract_type == ctype],
                         key=lambda c: (c.confidence, -c.source_line),
@@ -79,6 +82,8 @@ def detect_collisions(
                         [c for c in c_b_list if c.contract_type == ctype],
                         key=lambda c: (c.confidence, -c.source_line),
                     )
+
+                    status, reason = _evaluate_tri_state(claim_a, claim_b)
 
                     # 1. Value Domain Drift
                     if ctype == "value_domain":
@@ -94,6 +99,8 @@ def detect_collisions(
                                         f"'{claim_a.domain}' ({claim_a.agent_id}) vs "
                                         f"'{claim_b.domain}' ({claim_b.agent_id})"
                                     ),
+                                    status=status,
+                                    epistemic_reason=reason,
                                     halted=True,
                                 )
                             )
@@ -117,6 +124,8 @@ def detect_collisions(
                                         f"'{claim_a.domain}' ({claim_a.agent_id}) vs "
                                         f"'{claim_b.domain}' ({claim_b.agent_id})"
                                     ),
+                                    status=status,
+                                    epistemic_reason=reason,
                                     halted=True,
                                 )
                             )
@@ -140,11 +149,12 @@ def detect_collisions(
                                         f"'{claim_a.domain}' ({claim_a.agent_id}) vs "
                                         f"'{claim_b.domain}' ({claim_b.agent_id})"
                                     ),
+                                    status=status,
+                                    epistemic_reason=reason,
                                     halted=True,
                                 )
                             )
             else:
-                # Differing contract types on the same symbol
                 claim_a = max(c_a_list, key=lambda c: (c.confidence, -c.source_line))
                 claim_b = max(c_b_list, key=lambda c: (c.confidence, -c.source_line))
                 is_none_a = _is_none_error_domain(claim_a.domain)
@@ -152,6 +162,7 @@ def detect_collisions(
                 is_none_b = _is_none_error_domain(claim_b.domain)
                 is_raise_a = _is_raise_error_domain(claim_a.domain)
                 if (is_none_a and is_raise_b) or (is_raise_a and is_none_b):
+                    status, reason = _evaluate_tri_state(claim_a, claim_b)
                     collisions.append(
                         CollisionVector(
                             claim_a=claim_a,
@@ -163,6 +174,8 @@ def detect_collisions(
                                 f"'{claim_a.domain}' ({claim_a.agent_id}) vs "
                                 f"'{claim_b.domain}' ({claim_b.agent_id})"
                             ),
+                            status=status,
+                            epistemic_reason=reason,
                             halted=True,
                         )
                     )

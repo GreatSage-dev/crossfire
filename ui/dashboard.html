@@ -879,6 +879,52 @@
       terminalBody.innerHTML = resolved ? resolvedTerminalLogs : initialTerminalLogs;
       terminalBody.scrollTop = terminalBody.scrollHeight;
     });
+
+    // ── Live WebSocket Stream (ws://127.0.0.1:8765) with Graceful Offline Fallback ──
+    function initWebSocket() {
+      try {
+        const ws = new WebSocket('ws://127.0.0.1:8765');
+        const liveDot = document.querySelector('.live-dot');
+
+        ws.onopen = () => {
+          console.log('[CROSSFIRE] Connected to live TCAS broadcaster.');
+          if (liveDot) liveDot.style.background = 'var(--status-ok)';
+          statusText.innerHTML = `LIVE TELEMETRY <span style="font-weight: 400; opacity: 0.8;">(ws://127.0.0.1:8765)</span>`;
+          statusText.style.color = 'var(--status-ok)';
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'TELEMETRY_UPDATE') {
+              const count = data.active_collisions ?? 0;
+              collisionCount.textContent = count;
+
+              if (count === 0) {
+                document.body.classList.add('resolved');
+                toggle.textContent = 'RESOLVED';
+                statusText.textContent = 'RESOLVED — 0 COLLISIONS ACTIVE';
+                document.querySelectorAll('.status-badge').forEach(badge => badge.textContent = '✓ CLEAR');
+              } else {
+                document.body.classList.remove('resolved');
+                toggle.textContent = 'COLLISION';
+                statusText.textContent = `ACTIVE — ${count} COLLISIONS DETECTED`;
+                document.querySelectorAll('.status-badge').forEach(badge => badge.textContent = '⚠ HALTED');
+              }
+            }
+          } catch (e) {
+            console.warn('[CROSSFIRE] Telemetry payload parse error:', e);
+          }
+        };
+
+        ws.onclose = () => {
+          console.log('[CROSSFIRE] Live broadcaster offline. Retaining simulation fallback.');
+        };
+      } catch (err) {
+        console.log('[CROSSFIRE] Offline mode active.');
+      }
+    }
+    initWebSocket();
   </script>
 
 </body>

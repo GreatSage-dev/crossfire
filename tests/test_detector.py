@@ -122,3 +122,34 @@ def test_empty_claims_produce_no_collisions() -> None:
     )
     assert detect_collisions([claim], []) == []
     assert detect_collisions([], [claim]) == []
+
+
+def test_tri_state_law_epistemic_refusal() -> None:
+    """Verify King's Court 3.0 Knot 3: Epistemic Refusal entering UNKNOWN_SUSPEND on low confidence."""
+    # High confidence claims -> COLLISION_HALT
+    claim_high_a = InvariantClaim(
+        agent_id="agent_a", symbol="limit", domain="int[0, 100]",
+        contract_type="value_domain", source_line=5, confidence=0.95
+    )
+    claim_high_b = InvariantClaim(
+        agent_id="agent_b", symbol="limit", domain="float[0.0, 1.0]",
+        contract_type="value_domain", source_line=8, confidence=0.85
+    )
+    cols_high = detect_collisions([claim_high_a], [claim_high_b])
+    assert len(cols_high) == 1
+    assert cols_high[0].status == "collision_halt"
+    assert cols_high[0].halted is True
+    assert cols_high[0].epistemic_reason is None
+
+    # Ambiguous low confidence claim (< 0.70) -> UNKNOWN_SUSPEND (Refuses to guess)
+    claim_low_b = InvariantClaim(
+        agent_id="agent_b", symbol="limit", domain="float[0.0, 1.0]",
+        contract_type="value_domain", source_line=8, confidence=0.60
+    )
+    cols_low = detect_collisions([claim_high_a], [claim_low_b])
+    assert len(cols_low) == 1
+    assert cols_low[0].status == "unknown_suspend"
+    assert cols_low[0].halted is True
+    assert cols_low[0].epistemic_reason is not None
+    assert "Epistemic Refusal" in cols_low[0].epistemic_reason
+

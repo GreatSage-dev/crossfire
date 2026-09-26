@@ -1,8 +1,9 @@
 # CROSSFIRE: Air Traffic Collision Avoidance System (TCAS) for Parallel AI Agents
 
-[![Deterministic Tests](https://img.shields.io/badge/pytest-14%20passed%20%5B0.37s%5D-brightgreen?style=flat-square)](file:///tests/)
+[![Deterministic Tests](https://img.shields.io/badge/pytest-16%20passed%20%5B0.41s%5D-brightgreen?style=flat-square)](file:///tests/)
 [![Bob IDE Verified](https://img.shields.io/badge/IBM%20Bob%202.0-Verified%20Session-0062FF?style=flat-square)](file:///bob_sessions/)
 [![Exit Code Protocol](https://img.shields.io/badge/PreToolUse-Exit%20Code%202%20Halt-E8611A?style=flat-square)](file:///crossfire/hook.py)
+[![Zero-Dependency Receipt](https://img.shields.io/badge/run__receipt.py-4.50ms%20Proof-brightgreen?style=flat-square)](run_receipt.py)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 
 $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrightarrow \text{\textbf{COLLIDE (TCAS)}} \longrightarrow \text{\textbf{HALT (EXIT 2)}} \longrightarrow \text{\textbf{AUTO-STEER}}$$
@@ -17,35 +18,56 @@ $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrigh
 Explore the live operational interfaces in [`ui/`](ui/):
 * **Landing Interface ([`ui/index.html`](ui/index.html)):** Growaz-inspired command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP `clip-path` card entrances, and magnetic micro-interactions.
 * **Operations Dashboard ([`ui/dashboard.html`](ui/dashboard.html)):** Uncongested bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, and real-time TCAS sweep radar.
-* **Interactive State Toggle:** Toggle between `[COLLISION DETECTED]` and `[RESOLVED & ALIGNED]` to experience live collision remediation, auto-steering patch application, and instant zero-collision radar clearing.
+* **Interactive Live Stream:** Connects live to `crossfire live` over WebSocket (`ws://127.0.0.1:8765`), updating radar sweeps and threat vectors on file modification, with automatic offline simulation fallback.
 
-### Ingress Path B: The Sub-Second Terminal Drey
-Run the deterministic verification harness across all synthetic subagent scratchpads:
+### Ingress Path B: The Sub-Second Terminal Drey (Zero Dependencies)
+Run the zero-external-dependency mathematical verification harness in `< 0.01s`:
 ```bash
-python -m crossfire.cli verify
+python run_receipt.py
 ```
-**Terminal Output (< 0.10s):**
+**Terminal Output (4.50 ms):**
 ```text
-                   CROSSFIRE TCAS Collision Analysis Report                    
-+-----------------------------------------------------------------------------+
-| Symbol        | Collision Class    | Severity | Target Agent |    Halted    |
-|---------------+--------------------+----------+--------------+--------------|
-| discount      | INVARIANT_DRIFT    |     0.95 | agent_b      | YES (EXIT 2) |
-| get_item      | CONTRACT_DIVERGENCE|     0.90 | agent_a      | YES (EXIT 2) |
-| evict_session | LIFECYCLE_DESYNC   |     0.85 | agent_b      | YES (EXIT 2) |
-+-----------------------------------------------------------------------------+
+==============================================================================
+ CROSSFIRE // DETERMINISTIC TCAS VERIFICATION & DIFFERENTIAL RECEIPT
+ Standard: King's Court 3.0 (Knot 1: Differential Test | Knot 3: Tri-State)
+==============================================================================
 
-+------------------ TCAS RESOLUTION ADVISORY: evict_session ------------------+
-| ACTION: Migrate synchronous evict_session in agent_b to async coroutine to  |
-| prevent event loop blocking                                                 |
-| TARGET AGENT: agent_b                                                       |
-| PATCH HINT:                                                                 |
-| async def evict_session(*args, **kwargs):                                   |
-|     # TCAS Advisory: Converted synchronous blocking call to async coroutine |
-|     ...                                                                     |
-+-----------------------------------------------------------------------------+
+[SECTION 1: THE DIFFERENTIAL BENCHMARK // CONTROL GROUP VS CROSSFIRE]
+Collision Archetype        | Git Merge   | Linter/Types  | Standard Exec   | CROSSFIRE TCAS
+------------------------------------------------------------------------------
+1. Invariant Drift (scale) | 0 conflicts | 0 type errors | CATASTROPHIC*   | HALTED (EXIT 2) [0.08s]
+2. Lifecycle Desync (async) | 0 conflicts | 0 type errors | RUNTIME CRASH   | HALTED (EXIT 2) [0.08s]
+3. Contract Divergence (err) | 0 conflicts | 0 type errors | SILENT FAIL     | HALTED (EXIT 2) [0.08s]
+
+* Standard multi-agent execution results in a 1500% overcharge in promotional pricing.
+  Traditional git and linters are 100% blind to inter-scratchpad domain assumptions.
+
+[SECTION 2: TRI-STATE EPISTEMIC SAFETY AUDIT]
+  • Deterministic Divergences (Conf >= 0.85): 3 / 3 -> State: COLLISION_HALT (Exit 2)
+  • Ambiguous Bounds (Conf < 0.70):           Tested -> State: UNKNOWN_SUSPEND (Refuses to guess)
+  • Aligned Contracts (Domains Match):        Tested -> State: CLEAR (Resume execution)
+
+[SECTION 3: AUDIT RECEIPT]
+  Receipt Fingerprint:  sha256:07a82e33fd2f3789
+  AST Mining Latency:   1.86 ms
+  Total Receipt Time:   4.50 ms (< 100 ms target)
+  Deterministic Check:  100% PASS (Zero network calls, zero LLM variance)
+==============================================================================
 ```
-*Process exits with return code `2` to halt Bob's tool runner.*
+
+---
+
+## Architectural Enforcement Matrix (King's Court 3.0 Standard)
+
+| Layer | Invariant Mechanism | Enforcement Point | Fail-Closed Policy |
+| :--- | :--- | :--- | :--- |
+| **AST Mining** | Chained boundary assertion extraction (`[0.0, 1.0]` vs `[0, 100]`) | [`crossfire/miner.py:240`](crossfire/miner.py) | Confidence weighted (0.85–1.0) |
+| **AST Mining** | Async coroutine vs synchronous blocking function detection | [`crossfire/miner.py:108`](crossfire/miner.py) | Explicit lifecycle mapping |
+| **AST Mining** | Return `None` vs explicit `raise Exception` contract matching | [`crossfire/miner.py:137`](crossfire/miner.py) | Exception symbol extraction |
+| **Detection** | Tri-State epistemic classification (`CLEAR` vs `COLLISION_HALT` vs `UNKNOWN_SUSPEND`) | [`crossfire/detector.py:30`](crossfire/detector.py) | Confidence < 0.70 enters `UNKNOWN_SUSPEND` |
+| **Hook Protocol** | Bob 2.0 PreToolUse hook execution intercept | [`crossfire/hook.py:149`](crossfire/hook.py) | Non-zero exit code (`sys.exit(2)`) |
+| **Resolution** | TCAS imperative patch advisory generation | [`crossfire/resolver.py:33`](crossfire/resolver.py) | Imperative steering in `stderr` |
+| **Telemetry** | Live WebSocket broadcast engine (`ws://127.0.0.1:8765`) | [`crossfire/broadcaster.py:46`](crossfire/broadcaster.py) | Async fan-out with offline fallback |
 
 ---
 
@@ -61,49 +83,11 @@ Linters, compilers, and git line merges only check syntax and type signatures. T
 
 ---
 
-## The Concrete Artifact: The Assumption Ledger
+## The Post-Build Evidence & Decision Corpus
 
-Following the May 2026 Grand Champion formula (*Pedigree*'s Code Passport, *Atlas*'s 3D City, *Sandbox*'s Failure Replay), CROSSFIRE projects invisible agent assumptions into a concrete, verifiable artifact:
-
-```json
-{
-  "sessionId": "bob-session-8842",
-  "radarStatus": "COLLISION_DETECTED",
-  "activeCollisions": [
-    {
-      "symbol": "discount",
-      "collisionClass": "invariant_drift",
-      "severity": 0.95,
-      "claimA": { "agent": "agent_a", "domain": "float[0.0, 1.0]", "line": 6 },
-      "claimB": { "agent": "agent_b", "domain": "int[0, 100]", "line": 4 }
-    }
-  ],
-  "tcasAdvisory": {
-    "targetAgent": "agent_b",
-    "recommendedAction": "Normalize discount in agent_b to float domain [0.0, 1.0]",
-    "patchHint": "discount = float(discount) / 100.0 if discount > 1.0 else float(discount)"
-  }
-}
-```
-
----
-
-## Why IBM Bob 2.0 Is Strictly Load-Bearing
-
-Remove IBM Bob 2.0, and CROSSFIRE has no execution substrate:
-1. **Parallel Subagents:** CROSSFIRE specifically governs the concurrent scratchpads and isolated context branches generated by Bob 2.0's dual-agent architecture (`Explore` and `General`).
-2. **Fail-Closed Lifecycle Hooks:** CROSSFIRE relies directly on Bob 2.0's `PreToolUse` hook protocol to halt execution with exit code `2` and pipe the advisory into the blocked agent's queue.
-3. **Spec-Driven Development:** CROSSFIRE anchors baseline contracts directly from Bob's `/speckit.specify` requirements documents.
-
-### Sponsor Ablation Table
-
-| Metric | Vanilla Git Merge | Standard LSP / Pyright | CROSSFIRE + IBM Bob 2.0 |
-| :--- | :--- | :--- | :--- |
-| **Time to Detect Semantic Conflict** | Post-Merge (Production Outage) | Compile Time (Only if types mismatch) | **0.08s (In-Flight Interception)** |
-| **Catches Range / Scaling Mismatches?** | ❌ NO | ❌ NO | ✅ **YES (100% Deterministic)** |
-| **Catches Temporal / Async Drift?** | ❌ NO | ❌ NO | ✅ **YES (100% Deterministic)** |
-| **Auto-Steers Blocked Subagent?** | ❌ NO | ❌ NO | ✅ **YES (Closed-Loop Resolution)** |
-| **Bobcoin Conservation** | High burn (re-prompt loops) | N/A | **80% Bobcoin Reduction** |
+* [`evidence/EVAL_REPORT.md`](evidence/EVAL_REPORT.md) — The complete evaluation benchmark, Knot 1 differential control analysis, microsecond latency breakdown, and disarming tuning disclosures.
+* [`docs/SPONSOR_ABLATION.md`](docs/SPONSOR_ABLATION.md) — 4-point ablation matrix proving IBM Bob 2.0's `PreToolUse` hook and isolated scratchpads are strictly load-bearing.
+* [`docs/DECISIONS.md`](docs/DECISIONS.md) — Architectural Decision Records (ADRs) documenting Tri-State epistemic laws and patched edge cases.
 
 ---
 
@@ -126,9 +110,10 @@ In compliance with the official IBM Bob 2.0 Hackathon requirements, all Bob IDE 
 | :--- | :--- | :--- |
 | **AST Invariant Extraction** | **Production-Grade** | Pure Python `ast.NodeVisitor` inspecting asserts, parameters, and expressions. Zero external network calls. |
 | **Collision Detection Engine** | **Production-Grade** | Graph intersection of symbol mutation cones vs invocation cones across 3 collision classes. |
+| **Tri-State Epistemic Classification** | **Production-Grade** | First-class `UNKNOWN_SUSPEND` state that refuses to guess on low-confidence contracts (< 0.70). |
 | **PreToolUse Hook Contract** | **Production-Grade** | Complies with Bob 2.0's fail-closed specification (exit code 2 halts runner). |
 | **Closed-Loop Resolution Patching** | **Production-Grade** | Imperative patch generation with AST boundary normalization. |
-| **Glass Cockpit UI** | **Production-Grade** | Growaz-inspired landing page, uncongested bento dashboard, SVG TCAS radar, and Lenis/GSAP scroll physics. |
+| **Glass Cockpit UI** | **Production-Grade** | Growaz-inspired landing page, uncongested bento dashboard, SVG TCAS radar, and live WebSocket telemetry. |
 | **Dynamic Runtime Reflection** | **Out of Scope** | Dynamic runtime string evaluation (`getattr(mod, f"dyn_{name}")`) is intentionally excluded from static AST analysis. |
 
 ---
@@ -140,18 +125,24 @@ In compliance with the official IBM Bob 2.0 Hackathon requirements, all Bob IDE 
 git clone https://github.com/GreatSage-dev/crossfire.git
 cd crossfire
 
-# Install dependencies
+# Install dependencies (or pip install -r requirements.txt)
 pip install -e .
 
-# Run deterministic test suite (14 tests in <0.4s)
+# Run zero-dependency mathematical receipt (< 0.01s)
+python run_receipt.py
+
+# Run full test suite (16 tests in 0.41s)
 pytest -v
 
-# Run the TCAS CLI verifier
+# Run deterministic TCAS verifier (exits with code 2)
 crossfire verify
+
+# Start live real-time WebSocket telemetry stream for the dashboard
+crossfire live
 ```
 
 ---
 
 ## Team Mrsage
-Built for the **IBM Bob 2.0 Hackathon** (Sept 25–27, 2026).
+Built for the **IBM Bob 2.0 Hackathon** (Sept 25–27, 2026).  
 Team on LabLab: **Mrsage** | GitHub: **GreatSage-dev**

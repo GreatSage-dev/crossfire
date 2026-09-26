@@ -1,6 +1,7 @@
 """Data models and custom exceptions for CROSSFIRE invariant mining and collision detection."""
 
-from typing import Literal
+from enum import Enum
+from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -17,6 +18,19 @@ class MinerError(CrossfireError):
 class DetectorError(CrossfireError):
     """Raised when invariant collision detection fails."""
     pass
+
+
+class TCASStatus(str, Enum):
+    """Tri-State Law (King's Court 3.0 Knot 3): Epistemic refusal over binary thinking.
+
+    - CLEAR: Invariant contracts match deterministically with high confidence (>= 0.70).
+    - COLLISION_HALT: Invariant contracts conflict deterministically; execution halted (Exit 2).
+    - UNKNOWN_SUSPEND: Claims exhibit ambiguous, dynamic, or low-confidence contracts (< 0.70).
+                       The system refuses to guess and suspends execution fail-closed.
+    """
+    CLEAR = "clear"
+    COLLISION_HALT = "collision_halt"
+    UNKNOWN_SUSPEND = "unknown_suspend"
 
 
 class InvariantClaim(BaseModel):
@@ -76,6 +90,8 @@ class CollisionVector(BaseModel):
         collision_class: Taxonomy class: 'invariant_drift', 'lifecycle_desync', or 'contract_divergence'.
         severity: Estimated severity score between 0.0 (negligible) and 1.0 (catastrophic).
         description: Human and machine-readable explanation of why these claims collide.
+        status: Tri-State classification: CLEAR, COLLISION_HALT, or UNKNOWN_SUSPEND.
+        epistemic_reason: Optional justification when entering UNKNOWN_SUSPEND (epistemic refusal).
         halted: Flag indicating whether execution should be halted due to this collision.
     """
 
@@ -88,6 +104,14 @@ class CollisionVector(BaseModel):
     )
     severity: float = Field(..., description="Estimated severity score between 0.0 (negligible) and 1.0 (catastrophic).")
     description: str = Field(..., description="Human and machine-readable explanation of why these claims collide.")
+    status: TCASStatus = Field(
+        default=TCASStatus.COLLISION_HALT,
+        description="Tri-State classification: CLEAR, COLLISION_HALT, or UNKNOWN_SUSPEND.",
+    )
+    epistemic_reason: Optional[str] = Field(
+        default=None,
+        description="Justification when entering UNKNOWN_SUSPEND (epistemic refusal).",
+    )
     halted: bool = Field(default=False, description="Flag indicating whether execution should be halted.")
 
     @field_validator("severity")

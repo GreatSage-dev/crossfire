@@ -160,6 +160,36 @@ def report(path: Path, all: bool) -> None:
         console.print(panel)
 
 
+@cli.command("live")
+@click.option(
+    "--path",
+    "-p",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=Path("tests/fixtures"),
+    help="Directory containing agent scratchpads to monitor live.",
+)
+@click.option(
+    "--port",
+    default=8765,
+    help="WebSocket server port (default: 8765).",
+)
+def live(path: Path, port: int) -> None:
+    """Start the live real-time TCAS telemetry broadcaster for the UI console."""
+    import asyncio
+    from crossfire.broadcaster import TelemetryBroadcaster
+
+    console.print("[bold #E8611A]CROSSFIRE TCAS Live Telemetry Broadcaster[/bold #E8611A]")
+    console.print(f"• Monitoring directory: [bold #F0EDE8]{path}[/bold #F0EDE8]")
+    console.print(f"• WebSocket server:     [bold #F5A623]ws://127.0.0.1:{port}[/bold #F5A623]")
+    console.print("• Open [bold #F0EDE8]ui/dashboard.html[/bold #F0EDE8] in your browser to view real-time radar.\n")
+
+    broadcaster = TelemetryBroadcaster(host="127.0.0.1", port=port, watch_path=path)
+    try:
+        asyncio.run(broadcaster.start())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Telemetry stream stopped.[/yellow]")
+
+
 def main() -> None:
     """CLI execution wrapper."""
     cli()
@@ -167,3 +197,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
