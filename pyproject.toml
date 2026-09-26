@@ -31,6 +31,3 @@ include = ["crossfire*"]
 pythonpath = ["."]
 testpaths = ["tests"]
 
-[tool.vercel]
-entrypoint = "api/index.py"
-
