@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CROSSFIRE — Automated Demo Video Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-void: #0D0D0D;
+      --bg-card: #161616;
+      --bg-border: #252525;
+      --accent-fire: #E8611A;
+      --accent-amber: #F5A623;
+      --text-primary: #F0EDE8;
+      --text-muted: #666666;
+      --success-green: #4CAF50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #050505;
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 16:9 Cinema Container */
+    #video-viewport {
+      width: 1280px;
+      height: 720px;
+      background-color: var(--bg-void);
+      border: 1px solid var(--bg-border);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Video Scene Panels */
+    .scene {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease-in-out, transform 0.8s ease-out;
+      transform: scale(0.98);
+    }
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* Radar animation */
+    @keyframes radarSweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .sweep-line {
+      transform-origin: 200px 200px;
+      animation: radarSweep 4s linear infinite;
+    }
+
+    /* HUD Bar */
+    .hud-bar {
+      position: absolute;
+      top: 20px; left: 30px; right: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      z-index: 100;
+    }
+
+    /* Playback Controls Below */
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .btn {
+      background-color: var(--accent-fire);
+      color: #FFF;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary {
+      background-color: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      color: var(--text-primary);
+    }
+
+    .progress-bar-container {
+      width: 400px;
+      height: 6px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background-color: var(--accent-fire);
+      transition: width 0.1s linear;
+    }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      width: 100%;
+      max-width: 1100px;
+    }
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      padding: 24px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="video-viewport">
+    <div class="hud-bar">
+      <div>CROSSFIRE // TCAS DEMO BROADCAST</div>
+      <div id="time-display" style="color: var(--accent-fire); font-weight: 700;">00:00 / 01:30</div>
+      <div>IBM BOB 2.0 HACKATHON</div>
+    </div>
+
+    <!-- SCENE 1: TITLE INTRO (0s - 15s) -->
+    <div class="scene active" id="scene-1">
+      <svg width="400" height="400" style="position: absolute; opacity: 0.25;">
+        <circle cx="200" cy="200" r="70" stroke="var(--bg-border)" stroke-width="2" fill="none" />
+        <circle cx="200" cy="200" r="130" stroke="var(--bg-border)" stroke-width="2" fill="none" />
+        <circle cx="200" cy="200" r="190" stroke="var(--bg-border)" stroke-width="2" fill="none" />
+        <line x1="20" y1="200" x2="380" y2="200" stroke="var(--bg-border)" stroke-width="1" stroke-dasharray="4 4" />
+        <line x1="200" y1="20" x2="200" y2="380" stroke="var(--bg-border)" stroke-width="1" stroke-dasharray="4 4" />
+        <g class="sweep-line">
+          <line x1="200" y1="200" x2="380" y2="200" stroke="var(--accent-fire)" stroke-width="2.5" opacity="0.8" />
+        </g>
+        <circle cx="260" cy="140" r="6" fill="var(--accent-fire)" />
+        <circle cx="150" cy="250" r="5" fill="var(--accent-amber)" />
+      </svg>
+      <div style="border: 1px solid var(--accent-fire); background: rgba(232,97,26,0.12); color: var(--accent-fire); padding: 6px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; margin-bottom: 20px; z-index: 10;">
+        ✦ TCAS COLLISION AVOIDANCE
+      </div>
+      <h1 style="font-family: 'Inter', sans-serif; font-size: 80px; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 12px; z-index: 10; text-shadow: 0 0 40px rgba(232,97,26,0.3);">
+        CROSSFIRE
+      </h1>
+      <p style="font-size: 20px; color: #A09D98; max-width: 700px; text-align: center; line-height: 1.5; z-index: 10;">
+        Air Traffic Collision Avoidance for Parallel AI Subagents in IBM Bob 2.0
+      </p>
+      <div style="margin-top: 40px; font-size: 14px; color: var(--text-muted); z-index: 10;">
+        TEAM MRSAGE • SEPT 2026
+      </div>
+    </div>
+
+    <!-- SCENE 2: THE INVISIBLE WOUND (15s - 35s) -->
+    <div class="scene" id="scene-2">
+      <div style="color: var(--accent-fire); font-size: 13px; font-weight: 700; letter-spacing: 0.2em; margin-bottom: 12px;">ACT I // THE INVISIBLE WOUND</div>
+      <h2 style="font-family: 'Inter', sans-serif; font-size: 36px; font-weight: 700; margin-bottom: 35px;">
+        Why Standard Tools Pass Silently Into Catastrophe
+      </h2>
+      <div class="card-grid">
+        <div class="card">
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">01 • TEXT MERGE</div>
+          <div style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Git Merge-Tree</div>
+          <div style="background: rgba(76,175,80,0.15); border: 1px solid var(--success-green); color: var(--success-green); padding: 8px; border-radius: 4px; font-weight: 700; font-size: 15px;">
+            ✓ 0 CONFLICTS
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 10px;">Subagents work in isolated scratchpads. Git sees clean distinct files.</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">02 • TYPE SYSTEM</div>
+          <div style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">mypy / Linters</div>
+          <div style="background: rgba(76,175,80,0.15); border: 1px solid var(--success-green); color: var(--success-green); padding: 8px; border-radius: 4px; font-weight: 700; font-size: 15px;">
+            ✓ 0 TYPE ERRORS
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 10px;">Types match (int == int). Compilers report zero syntax errors.</div>
+        </div>
+        <div class="card" style="border-color: var(--accent-fire);">
+          <div style="font-size: 13px; color: var(--accent-fire); margin-bottom: 8px;">03 • EXECUTION</div>
+          <div style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Production Runtime</div>
+          <div style="background: rgba(232,97,26,0.18); border: 1px solid var(--accent-fire); color: #FF5722; padding: 8px; border-radius: 4px; font-weight: 700; font-size: 15px;">
+            💥 OUTAGE / -$1,400
+          </div>
+          <div style="font-size: 13px; color: #D0CDC8; margin-top: 10px;">Contradictory assumptions collide at runtime causing catastrophic outages.</div>
+        </div>
+      </div>
+      <div style="margin-top: 30px; font-style: italic; color: #BBB; background: var(--bg-card); padding: 14px 28px; border-left: 3px solid var(--accent-amber); max-width: 900px; font-size: 15px;">
+        "Git was built for lines of text. Linters check local syntax. Neither tool knows what your agents are assuming."
+      </div>
+    </div>
+
+    <!-- SCENE 3: FOUR ARCHETYPES (35s - 55s) -->
+    <div class="scene" id="scene-3">
+      <div style="color: var(--accent-fire); font-size: 13px; font-weight: 700; letter-spacing: 0.2em; margin-bottom: 10px;">ACT II // THE DIFFERENTIAL MATRIX</div>
+      <h2 style="font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 24px;">
+        Four Controlled Multi-Agent Collision Archetypes
+      </h2>
+      <div style="width: 100%; max-width: 1100px; background: var(--bg-card); border: 1px solid var(--bg-border); border-radius: 6px; overflow: hidden; font-size: 13px;">
+        <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.6fr 1.6fr 2fr 1.4fr; padding: 12px 16px; background: #202020; color: #888; font-weight: 700;">
+          <div>COLLISION ARCHETYPE</div>
+          <div>SYMBOL</div>
+          <div>AGENT A</div>
+          <div>AGENT B</div>
+          <div>STANDARD FAILURE</div>
+          <div>CROSSFIRE</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.6fr 1.6fr 2fr 1.4fr; padding: 12px 16px; border-bottom: 1px solid var(--bg-border);">
+          <div>01 • Invariant Scale Drift</div>
+          <div style="color: var(--accent-fire);">discount</div>
+          <div style="color: var(--success-green);">float[0.0, 1.0]</div>
+          <div style="color: var(--accent-amber);">int[0, 100]</div>
+          <div style="color: #FF7043;">-1,400% Price Charge</div>
+          <div><span style="background: rgba(232,97,26,0.2); border: 1px solid var(--accent-fire); color: var(--accent-fire); padding: 2px 8px; border-radius: 3px; font-weight: 700;">HALT (EXIT 2)</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.6fr 1.6fr 2fr 1.4fr; padding: 12px 16px; border-bottom: 1px solid var(--bg-border);">
+          <div>02 • Lifecycle Desync</div>
+          <div style="color: var(--accent-fire);">evict_session</div>
+          <div style="color: var(--success-green);">async coroutine</div>
+          <div style="color: var(--accent-amber);">sync function</div>
+          <div style="color: #FF7043;">Event Loop Crash</div>
+          <div><span style="background: rgba(232,97,26,0.2); border: 1px solid var(--accent-fire); color: var(--accent-fire); padding: 2px 8px; border-radius: 3px; font-weight: 700;">HALT (EXIT 2)</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.6fr 1.6fr 2fr 1.4fr; padding: 12px 16px; border-bottom: 1px solid var(--bg-border);">
+          <div>03 • Contract Divergence</div>
+          <div style="color: var(--accent-fire);">get_item</div>
+          <div style="color: var(--success-green);">raise ItemNotFound</div>
+          <div style="color: var(--accent-amber);">return None</div>
+          <div style="color: #FF7043;">Silent Restock Freeze</div>
+          <div><span style="background: rgba(232,97,26,0.2); border: 1px solid var(--accent-fire); color: var(--accent-fire); padding: 2px 8px; border-radius: 3px; font-weight: 700;">HALT (EXIT 2)</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.6fr 1.6fr 2fr 1.4fr; padding: 12px 16px; background: rgba(232,97,26,0.06); border-left: 3px solid var(--accent-fire);">
+          <div style="font-weight: 700; color: var(--accent-amber);">04 • Same-Type Unit Drift</div>
+          <div style="color: var(--accent-fire);">timeout</div>
+          <div style="color: var(--success-green);">int (seconds: 1..60)</div>
+          <div style="color: var(--accent-amber);">int (milliseconds: 5000)</div>
+          <div style="color: #FF7043; font-weight: 700;">Defeats mypy! Gateway Drop</div>
+          <div><span style="background: rgba(232,97,26,0.2); border: 1px solid var(--accent-fire); color: var(--accent-fire); padding: 2px 8px; border-radius: 3px; font-weight: 700;">HALT (EXIT 2)</span></div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; font-size: 13px; color: var(--text-muted);">
+        Controlled test vectors proving Git, linters, and mypy 100% blind to inter-scratchpad domain assumptions.
+      </div>
+    </div>
+
+    <!-- SCENE 4: OPERATIONS CONSOLE (55s - 75s) -->
+    <div class="scene" id="scene-4">
+      <div style="color: var(--accent-fire); font-size: 13px; font-weight: 700; letter-spacing: 0.2em; margin-bottom: 10px;">ACT III // OPERATIONS CONSOLE</div>
+      <h2 style="font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 20px;">
+        IBM Bob 2.0 PreToolUse Hook Integration
+      </h2>
+      <div style="width: 100%; max-width: 1100px; height: 420px; background: var(--bg-card); border: 1px solid var(--bg-border); border-radius: 6px; padding: 24px; display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px;">
+        <div style="background: #111; border: 1px solid var(--bg-border); border-radius: 4px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">TCAS AIRSPACE RADAR</div>
+          <svg width="220" height="220" viewBox="0 0 220 220">
+            <circle cx="110" cy="110" r="40" stroke="var(--bg-border)" stroke-width="1.5" fill="none" />
+            <circle cx="110" cy="110" r="75" stroke="var(--bg-border)" stroke-width="1.5" fill="none" />
+            <circle cx="110" cy="110" r="105" stroke="var(--bg-border)" stroke-width="1.5" fill="none" />
+            <g class="sweep-line" style="transform-origin: 110px 110px;">
+              <line x1="110" y1="110" x2="215" y2="110" stroke="var(--accent-fire)" stroke-width="2" />
+            </g>
+            <circle cx="150" cy="80" r="5" fill="var(--accent-fire)" />
+            <circle cx="75" cy="140" r="5" fill="var(--accent-amber)" />
+            <circle cx="170" cy="135" r="5" fill="var(--accent-fire)" />
+          </svg>
+          <div style="margin-top: 10px; font-size: 11px; color: var(--accent-fire); font-weight: 700;">
+            ● 3 VECTORS HALTED (EXIT CODE 2)
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="background: #111; border: 1px solid var(--bg-border); border-radius: 4px; padding: 14px; flex: 1;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">INTERCEPTED ASSUMPTION LEDGER</div>
+            <div style="font-size: 12px; line-height: 22px;">
+              <div style="display: flex; justify-content: space-between; color: var(--accent-fire);">
+                <span>▸ discount</span><span>float[0.0, 1.0] vs int[0, 100]</span><span style="font-weight: 700;">HALTED</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; color: var(--accent-amber);">
+                <span>▸ evict_session</span><span>async vs sync</span><span style="font-weight: 700;">HALTED</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; color: var(--accent-fire);">
+                <span>▸ timeout</span><span>int[1, 60]s vs int[val=5000]ms</span><span style="font-weight: 700;">HALTED</span>
+              </div>
+            </div>
+          </div>
+          <div style="background: #111; border-left: 3px solid var(--accent-fire); padding: 14px; border-radius: 4px;">
+            <div style="font-size: 12px; color: var(--accent-fire); font-weight: 700; margin-bottom: 6px;">TCAS RESOLUTION ADVISORY (AUTO-STEER)</div>
+            <div style="font-size: 12px; color: #FFF; margin-bottom: 6px;">Target: Subagent B • Symbol: <code style="color: var(--accent-amber);">timeout</code></div>
+            <div style="background: #000; padding: 6px 10px; font-size: 11px; color: var(--success-green); border-radius: 3px;">
+              PATCH: timeout = timeout // 1000 # Align ms to seconds
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENE 5: CORE THESIS CLOSER (75s - 90s) -->
+    <div class="scene" id="scene-5">
+      <div style="display: flex; gap: 16px; margin-bottom: 30px;">
+        <span style="background: var(--bg-card); border: 1px solid var(--bg-border); padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--success-green); font-weight: 600;">✓ 19/19 Tests Passed</span>
+        <span style="background: var(--bg-card); border: 1px solid var(--bg-border); padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--success-green); font-weight: 600;">✓ 8/8 Mutants Killed (100%)</span>
+        <span style="background: var(--bg-card); border: 1px solid var(--bg-border); padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--accent-amber); font-weight: 600;">⚡ 1.08 Bobcoins Used</span>
+      </div>
+
+      <div style="max-width: 950px; background: #141414; border: 1px solid #2E2E2E; border-left: 5px solid var(--accent-fire); padding: 40px 48px; border-radius: 6px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        <div style="font-size: 13px; color: var(--accent-fire); letter-spacing: 0.2em; font-weight: 700; margin-bottom: 16px;">THE CORE THESIS</div>
+        <p style="font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 700; line-height: 1.45; color: var(--text-primary);">
+          Git detects textual conflicts.<br>
+          Tests detect behavioral failures in isolation.<br>
+          <span style="color: var(--accent-fire);">
+            CROSSFIRE detects conflicts between the assumptions of autonomous software agents before those assumptions become a system.
+          </span>
+        </p>
+      </div>
+
+      <div style="margin-top: 35px; text-align: center;">
+        <div style="font-size: 20px; font-weight: 700; color: var(--accent-amber);">crossfire-production.vercel.app</div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">TEAM MRSAGE • GITHUB: GreatSage-dev/crossfire • IBM BOB 2.0 HACKATHON</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" id="play-btn" onclick="togglePlay()">▶ Play Demo Presentation</button>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progress"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="resetVideo()">↺ Restart</button>
+    <button class="btn btn-secondary" onclick="fullscreen()">⛶ Fullscreen</button>
+  </div>
+
+  <script>
+    let isPlaying = false;
+    let currentTime = 0;
+    const duration = 90; // 90 seconds
+    let interval = null;
+
+    const scenes = [
+      { id: 'scene-1', start: 0, end: 15 },
+      { id: 'scene-2', start: 15, end: 35 },
+      { id: 'scene-3', start: 35, end: 55 },
+      { id: 'scene-4', start: 55, end: 75 },
+      { id: 'scene-5', start: 75, end: 90 },
+    ];
+
+    function updateView() {
+      // update time display
+      const mins = String(Math.floor(currentTime / 60)).padStart(2, '0');
+      const secs = String(Math.floor(currentTime % 60)).padStart(2, '0');
+      document.getElementById('time-display').innerText = `${mins}:${secs} / 01:30`;
+
+      // progress bar
+      const pct = (currentTime / duration) * 100;
+      document.getElementById('progress').style.width = pct + '%';
+
+      // active scene
+      scenes.forEach(s => {
+        const el = document.getElementById(s.id);
+        if (currentTime >= s.start && currentTime < s.end) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+
+      if (currentTime >= duration) {
+        clearInterval(interval);
+        isPlaying = false;
+        document.getElementById('play-btn').innerText = '▶ Play Demo Presentation';
+      }
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        clearInterval(interval);
+        isPlaying = false;
+        document.getElementById('play-btn').innerText = '▶ Play Demo Presentation';
+      } else {
+        isPlaying = true;
+        document.getElementById('play-btn').innerText = '❚❚ Pause';
+        interval = setInterval(() => {
+          currentTime += 0.1;
+          updateView();
+        }, 100);
+      }
+    }
+
+    function resetVideo() {
+      clearInterval(interval);
+      isPlaying = false;
+      currentTime = 0;
+      document.getElementById('play-btn').innerText = '▶ Play Demo Presentation';
+      updateView();
+    }
+
+    function fullscreen() {
+      const elem = document.getElementById('video-viewport');
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      }
+    }
+  </script>
+</body>
+</html>
