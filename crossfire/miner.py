@@ -220,8 +220,11 @@ class _ValueDomainVisitor(ast.NodeVisitor):
                     symbol = target.id
                     if isinstance(val, float) and 0.0 <= val <= 1.0:
                         self.add_claim(symbol=symbol, domain="float[0.0, 1.0]", line=node.lineno, confidence=0.85)
-                    elif isinstance(val, int) and not isinstance(val, bool) and 1 < val <= 100:
-                        self.add_claim(symbol=symbol, domain="int[0, 100]", line=node.lineno, confidence=0.85)
+                    elif isinstance(val, int) and not isinstance(val, bool):
+                        if 1 < val <= 100:
+                            self.add_claim(symbol=symbol, domain="int[0, 100]", line=node.lineno, confidence=0.85)
+                        else:
+                            self.add_claim(symbol=symbol, domain=f"int[val={val}]", line=node.lineno, confidence=0.90)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
@@ -231,8 +234,11 @@ class _ValueDomainVisitor(ast.NodeVisitor):
             val = node.value.value
             if isinstance(val, float) and 0.0 <= val <= 1.0:
                 self.add_claim(symbol=symbol, domain="float[0.0, 1.0]", line=node.lineno, confidence=0.90)
-            elif isinstance(val, int) and not isinstance(val, bool) and 1 < val <= 100:
-                self.add_claim(symbol=symbol, domain="int[0, 100]", line=node.lineno, confidence=0.90)
+            elif isinstance(val, int) and not isinstance(val, bool):
+                if 1 < val <= 100:
+                    self.add_claim(symbol=symbol, domain="int[0, 100]", line=node.lineno, confidence=0.90)
+                else:
+                    self.add_claim(symbol=symbol, domain=f"int[val={val}]", line=node.lineno, confidence=0.95)
         self.generic_visit(node)
 
     def visit_Assert(self, node: ast.Assert) -> None:
@@ -295,6 +301,9 @@ class _ValueDomainVisitor(ast.NodeVisitor):
             self.add_claim(symbol=symbol, domain="float[0.0, 1.0]", line=lineno, confidence=1.0)
         elif high_val == 100:
             self.add_claim(symbol=symbol, domain="int[0, 100]", line=lineno, confidence=0.95)
+        elif isinstance(low_val, (int, float)) and isinstance(high_val, (int, float)):
+            type_name = "float" if is_float_bound else "int"
+            self.add_claim(symbol=symbol, domain=f"{type_name}[{low_val}, {high_val}]", line=lineno, confidence=1.0)
 
     def visit_BinOp(self, node: ast.BinOp) -> None:
         """Detect literal percentage multiplications (e.g., price * 15 vs price * 0.15) and (1.0 - discount)."""

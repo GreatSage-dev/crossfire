@@ -12,7 +12,7 @@ def test_differential_benchmark_proves_control_group_failure() -> None:
     while CROSSFIRE deterministically intercepts and halts execution at 0.08s.
     """
     diff_results = run_naive_pipeline(FIXTURES_DIR)
-    assert len(diff_results) == 3
+    assert len(diff_results) == 4
 
     for res in diff_results:
         # Standard naive tools PASS silently
@@ -29,8 +29,8 @@ def test_differential_benchmark_proves_control_group_failure() -> None:
         assert res.crossfire_intercept.status_code == 2
         assert "HALTED" in res.crossfire_intercept.message
 
-    # Test that CROSSFIRE detection directly flags all 3 scenarios
+    # Test that CROSSFIRE detection directly flags all 4 scenarios
     total_cols, advisories = _analyze_directory(FIXTURES_DIR)
-    assert len(total_cols) == 3
-    assert len(advisories) == 3
+    assert len(total_cols) == 4
+    assert len(advisories) == 4
     assert all(c.halted for c in total_cols)

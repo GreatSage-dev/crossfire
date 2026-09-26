@@ -3,25 +3,26 @@
 ### Standard: King's Court 3.0 / Dual-Cylinder Architecture
 *Date of Verification Run:* Sept 26, 2026  
 *Environment:* Python 3.12.10 (win32 / Linux parity tested)  
-*Total Unit Tests:* 17/17 Passed (0.42s)  
-*Mutation Testing Score:* 8/8 Mutants Killed (100.0%)  
-*Zero-Dependency Receipt Latency:* 15.46 ms (`python run_receipt.py`)  
+*Total Unit Tests:* 19/19 Passed (0.48s)  
+*Mutation Testing Score:* 8/8 Injected Architectural Mutants Killed (100.0%)  
+*Zero-Dependency Receipt Latency:* ~35 ms (`python run_receipt.py`)  
 
 ---
 
 ## 1. The Differential Benchmark (Knot 1: The Control Group)
 
-Standard tools (git, linters, compilers) only inspect syntax and local types. When IBM Bob 2.0 spawns parallel subagents in isolated scratchpads, cross-file invariant assumptions pass silently through the naive pipeline and produce catastrophic production outages.
+Standard tools (git, linters, compilers, type checkers like `mypy`) only inspect syntax and local types. When IBM Bob 2.0 spawns parallel subagents in isolated scratchpads, cross-file invariant assumptions pass silently through the naive pipeline and produce catastrophic production outages.
 
 We subjected both the **Naive Control Pipeline** and **CROSSFIRE TCAS** to identical multi-agent conflict vectors:
 
-| Collision Archetype | Git Merge-Tree | Static Linter / Compiler | Naive Runtime Execution | CROSSFIRE TCAS Intercept |
+| Collision Archetype | Git Merge-Tree | Static Linter / Compiler / Mypy | Naive Runtime Execution | CROSSFIRE TCAS Intercept |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Invariant Drift** (`discount`) | ✅ 0 conflicts | ✅ 0 errors (valid types) | 💥 **CATASTROPHIC:** -1400% price charge (`100 * (1 - 15)`) | 🛑 **HALTED (Exit Code 2)** in 1.86ms |
-| **2. Lifecycle Desync** (`evict_session`) | ✅ 0 conflicts | ✅ 0 errors (valid syntax) | 💥 **EVENT LOOP CRASH:** `TypeError: bool cannot be awaited` | 🛑 **HALTED (Exit Code 2)** in 1.86ms |
-| **3. Contract Divergence** (`get_item`) | ✅ 0 conflicts | ✅ 0 errors (types conform) | 💥 **SILENT CORRUPTION:** Downstream `NoneType` attribute crash | 🛑 **HALTED (Exit Code 2)** in 1.86ms |
+| **1. Invariant Drift** (`discount`) | ✅ 0 conflicts | ✅ 0 errors (valid types) | 💥 **CATASTROPHIC:** -1400% price charge (`100 * (1 - 15)`) | 🛑 **HALTED (Exit Code 2)** |
+| **2. Lifecycle Desync** (`evict_session`) | ✅ 0 conflicts | ✅ 0 errors (valid syntax) | 💥 **EVENT LOOP CRASH:** `TypeError: bool cannot be awaited` | 🛑 **HALTED (Exit Code 2)** |
+| **3. Contract Divergence** (`get_item`) | ✅ 0 conflicts | ✅ 0 errors (types conform) | 💥 **SILENT CORRUPTION:** Downstream `NoneType` attribute crash | 🛑 **HALTED (Exit Code 2)** |
+| **4. Unit Drift on Identical Types** (`timeout`) | ✅ 0 conflicts | ✅ 0 errors (`mypy int == int` passes) | 💥 **GATEWAY TIMEOUT OUTAGE:** Agent B passes 5000ms, Agent A asserts $\le 60$s | 🛑 **HALTED (Exit Code 2)** |
 
-*Finding:* The standard pipeline has a 0% interception rate for cross-scratchpad semantic drift. CROSSFIRE intercepts 100% of tested vectors at AST boundary traversal before tool execution.
+*Finding:* The standard pipeline has a 0% interception rate for cross-scratchpad semantic drift. Even strict type checkers (`mypy`, `pyright`) fail when both subagents use identical types (`int`) with incompatible semantic units (seconds vs milliseconds). CROSSFIRE intercepts all 4 vectors at AST boundary traversal before tool execution.
 
 ---
 

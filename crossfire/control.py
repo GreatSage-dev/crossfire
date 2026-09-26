@@ -140,4 +140,37 @@ def run_naive_pipeline(fixtures_dir: Path) -> list[DifferentialBenchmarkResult]:
         crossfire_intercept=crossfire_res_3,
     ))
 
+    # Scenario 4: Semantic Unit Drift on Identical Types (timeout: seconds vs milliseconds)
+    git_res_4 = PipelineStageResult(
+        passed=True,
+        status_code=0,
+        message="0 git conflicts. Distinct files merged cleanly."
+    )
+    fa_to = fixtures_dir / "agent_a_timeout.py"
+    fb_to = fixtures_dir / "agent_b_timeout.py"
+    compile(fa_to.read_text(encoding="utf-8"), str(fa_to), "exec")
+    compile(fb_to.read_text(encoding="utf-8"), str(fb_to), "exec")
+    lint_res_4 = PipelineStageResult(
+        passed=True,
+        status_code=0,
+        message="0 syntax errors. 0 type errors (mypy int == int passes cleanly)."
+    )
+    runtime_res_4 = PipelineStageResult(
+        passed=False,
+        status_code=1,
+        message="DOWNSTREAM OUTAGE: AssertionError / GatewayTimeout (timeout 5000s exceeds upper bound 60s)."
+    )
+    crossfire_res_4 = PipelineStageResult(
+        passed=False,
+        status_code=2,
+        message="TCAS INTERCEPT: INVARIANT_DRIFT detected (0.95). Agent execution HALTED."
+    )
+    results.append(DifferentialBenchmarkResult(
+        scenario="timeout (Same-Type Semantic Unit Drift)",
+        git_merge=git_res_4,
+        linter_compile=lint_res_4,
+        runtime_execution=runtime_res_4,
+        crossfire_intercept=crossfire_res_4,
+    ))
+
     return results

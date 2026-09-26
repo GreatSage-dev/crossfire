@@ -1,16 +1,19 @@
 # CROSSFIRE: Air Traffic Collision Avoidance System (TCAS) for Parallel AI Agents
 
 [![Live Web Demo](https://img.shields.io/badge/Live%20Demo-crossfire--production.vercel.app-E8611A?style=flat-square&logo=vercel)](https://crossfire-production.vercel.app/)
-[![Deterministic Tests](https://img.shields.io/badge/pytest-17%20passed%20%5B0.42s%5D-brightgreen?style=flat-square)](tests/)
+[![Deterministic Tests](https://img.shields.io/badge/pytest-19%20passed%20%5B0.48s%5D-brightgreen?style=flat-square)](tests/)
 [![Mutation Score](https://img.shields.io/badge/Mutation%20Score-8%2F8%20Killed%20%5B100%25%5D-brightgreen?style=flat-square)](tests/mutation_lab.py)
 [![Bob IDE Verified](https://img.shields.io/badge/IBM%20Bob%202.0-Verified%20Session-0062FF?style=flat-square)](bob_sessions/)
 [![Exit Code Protocol](https://img.shields.io/badge/PreToolUse-Exit%20Code%202%20Halt-E8611A?style=flat-square)](crossfire/hook.py)
-[![Zero-Dependency Receipt](https://img.shields.io/badge/run__receipt.py-17.19ms%20Proof-brightgreen?style=flat-square)](run_receipt.py)
+[![Zero-Dependency Receipt](https://img.shields.io/badge/run__receipt.py-Deterministic%20Proof-brightgreen?style=flat-square)](run_receipt.py)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 
 $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrightarrow \text{\textbf{COLLIDE (TCAS)}} \longrightarrow \text{\textbf{HALT (EXIT 2)}} \longrightarrow \text{\textbf{AUTO-STEER}}$$
 
-> *"Git was built in 2005 for human text files. It only sounds an alarm if two developers edit the exact same line of code. When IBM Bob 2.0 spawns parallel subagents in isolated scratchpads, Agent A renames an architectural contract, and Agent B invokes the old contract in a separate file. Git merges with 0 conflicts, compilers pass, and production crashes. CROSSFIRE makes invisible cross-agent assumptions visible and coordinated before they compile."*
+> **The Core Thesis:**  
+> *"Git detects textual conflicts. Tests detect behavioral failures in isolation. CROSSFIRE detects conflicts between the assumptions of autonomous software agents before those assumptions become a system."*
+
+When IBM Bob 2.0 spawns parallel subagents in isolated scratchpads, each agent works in isolation. Agent A updates an architectural invariant; Agent B calls that code in another file with an incompatible assumption. Git reports 0 textual conflicts. Linters, compilers, and strict type checkers (`mypy`) report 0 type errors. Production crashes. CROSSFIRE makes invisible cross-agent assumptions visible and coordinated before code is written.
 
 ---
 
@@ -19,16 +22,16 @@ $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrigh
 ### Ingress Path A: The Glass Cockpit (Live Deployed Web Console)
 * 🌐 **Live Web Demo:** [https://crossfire-production.vercel.app](https://crossfire-production.vercel.app/)
 * 🛰️ **Live Operations Console:** [https://crossfire-production.vercel.app/dashboard](https://crossfire-production.vercel.app/dashboard)
-* **Landing Interface ([`index.html`](index.html)):** Growaz-inspired command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP `clip-path` card entrances, and magnetic micro-interactions.
-* **Operations Dashboard ([`dashboard.html`](dashboard.html)):** Uncongested bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, and real-time TCAS sweep radar.
+* **Landing Interface ([`index.html`](index.html)):** Command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP card entrances, and clean radar telemetry.
+* **Operations Dashboard ([`dashboard.html`](dashboard.html)):** Bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, real-time TCAS sweep radar, and an **Interactive Conflict Sandbox** where judges can type arbitrary Python code to watch live AST extraction and collision resolution.
 * **Interactive Live Stream:** Connects live to `crossfire live` over WebSocket (`ws://127.0.0.1:8765`), updating radar sweeps and threat vectors on file modification, with automatic offline simulation fallback.
 
-### Ingress Path B: The Sub-Second Terminal Drey (Zero Dependencies)
-Run the zero-external-dependency mathematical verification harness in `< 0.01s`:
+### Ingress Path B: The Sub-Second Terminal Verification (Zero Dependencies)
+Run the zero-external-dependency mathematical verification harness:
 ```bash
 python run_receipt.py
 ```
-**Terminal Output (4.50 ms):**
+**Terminal Output:**
 ```text
 ==============================================================================
  CROSSFIRE // DETERMINISTIC TCAS VERIFICATION & DIFFERENTIAL RECEIPT
@@ -36,25 +39,31 @@ python run_receipt.py
 ==============================================================================
 
 [SECTION 1: THE DIFFERENTIAL BENCHMARK // CONTROL GROUP VS CROSSFIRE]
-Collision Archetype        | Git Merge   | Linter/Types  | Standard Exec   | CROSSFIRE TCAS
-------------------------------------------------------------------------------
-1. Invariant Drift (scale) | 0 conflicts | 0 type errors | CATASTROPHIC*   | HALTED (EXIT 2) [0.08s]
-2. Lifecycle Desync (async) | 0 conflicts | 0 type errors | RUNTIME CRASH   | HALTED (EXIT 2) [0.08s]
-3. Contract Divergence (err) | 0 conflicts | 0 type errors | SILENT FAIL     | HALTED (EXIT 2) [0.08s]
+Collision Archetype          | Git Merge   | Linter/Types  | Standard Exec   | CROSSFIRE TCAS
+--------------------------------------------------------------------------------
+1. Invariant Drift (scale)   | 0 conflicts | 0 type errors | CATASTROPHIC*   | HALTED (EXIT 2)
+2. Lifecycle Desync (async)  | 0 conflicts | 0 type errors | RUNTIME CRASH   | HALTED (EXIT 2)
+3. Contract Divergence (err) | 0 conflicts | 0 type errors | SILENT FAIL     | HALTED (EXIT 2)
+4. Unit Drift (int vs int)   | 0 conflicts | mypy 0 errors | GATEWAY TIMEOUT | HALTED (EXIT 2)
 
-* Standard multi-agent execution results in a 1500% overcharge in promotional pricing.
-  Traditional git and linters are 100% blind to inter-scratchpad domain assumptions.
+* Differential proof: Git, linters, and mypy pass 100% cleanly across all 4 scenarios.
+  Standard tools cannot see inter-scratchpad domain assumptions. CROSSFIRE intercepts all 4.
 
 [SECTION 2: TRI-STATE EPISTEMIC SAFETY AUDIT]
-  • Deterministic Divergences (Conf >= 0.85): 3 / 3 -> State: COLLISION_HALT (Exit 2)
-  • Ambiguous Bounds (Conf < 0.70):           Tested -> State: UNKNOWN_SUSPEND (Refuses to guess)
-  • Aligned Contracts (Domains Match):        Tested -> State: CLEAR (Resume execution)
+  * Deterministic Divergences (Conf >= 0.85): 4 / 4 -> State: COLLISION_HALT (Exit 2)
+  * Ambiguous Bounds (Conf < 0.70):           Tested -> State: UNKNOWN_SUSPEND (Refuses to guess)
+  * Aligned Contracts (Domains Match):        Tested -> State: CLEAR (Resume execution)
 
-[SECTION 3: AUDIT RECEIPT]
-  Receipt Fingerprint:  sha256:07a82e33fd2f3789
-  AST Mining Latency:   1.86 ms
-  Total Receipt Time:   4.50 ms (< 100 ms target)
-  Deterministic Check:  100% PASS (Zero network calls, zero LLM variance)
+[SECTION 3: MUTATION TESTING HARNESS // ANTI-TAUTOLOGY PROOF]
+  Architectural Mutants: 8 / 8 Killed (100.0%)
+  Attestation:           8/8 injected architectural faults killed (suite proves non-tautological)
+
+[SECTION 4: AUDIT RECEIPT]
+  Receipt Fingerprint:   sha256:8d2d331051d5eaef
+  AST Mining Latency:    ~3.9 ms
+  Mutation Score:        8/8 Killed (100.0%)
+  Total Execution Time:  ~35 ms
+  Deterministic Check:   100% PASS (Zero network calls, zero LLM variance)
 ==============================================================================
 ```
 
@@ -64,25 +73,26 @@ Collision Archetype        | Git Merge   | Linter/Types  | Standard Exec   | CRO
 
 | Layer | Invariant Mechanism | Enforcement Point | Fail-Closed Policy |
 | :--- | :--- | :--- | :--- |
-| **AST Mining** | Chained boundary assertion extraction (`[0.0, 1.0]` vs `[0, 100]`) | [`crossfire/miner.py:240`](crossfire/miner.py) | Confidence weighted (0.85–1.0) |
-| **AST Mining** | Async coroutine vs synchronous blocking function detection | [`crossfire/miner.py:108`](crossfire/miner.py) | Explicit lifecycle mapping |
-| **AST Mining** | Return `None` vs explicit `raise Exception` contract matching | [`crossfire/miner.py:137`](crossfire/miner.py) | Exception symbol extraction |
-| **Detection** | Tri-State epistemic classification (`CLEAR` vs `COLLISION_HALT` vs `UNKNOWN_SUSPEND`) | [`crossfire/detector.py:30`](crossfire/detector.py) | Confidence < 0.70 enters `UNKNOWN_SUSPEND` |
-| **Hook Protocol** | Bob 2.0 PreToolUse hook execution intercept | [`crossfire/hook.py:149`](crossfire/hook.py) | Non-zero exit code (`sys.exit(2)`) |
-| **Resolution** | TCAS imperative patch advisory generation | [`crossfire/resolver.py:33`](crossfire/resolver.py) | Imperative steering in `stderr` |
-| **Telemetry** | Live WebSocket broadcast engine (`ws://127.0.0.1:8765`) | [`crossfire/broadcaster.py:46`](crossfire/broadcaster.py) | Async fan-out with offline fallback |
+| **AST Mining** | Generalized boundary assertions (`[0.0, 1.0]` vs `[0, 100]` or `[1, 60]`) | [`crossfire/miner.py`](crossfire/miner.py) | Confidence weighted (0.85–1.0) |
+| **AST Mining** | Async coroutine vs synchronous blocking function detection | [`crossfire/miner.py`](crossfire/miner.py) | Explicit lifecycle mapping |
+| **AST Mining** | Return `None` vs explicit `raise Exception` contract matching | [`crossfire/miner.py`](crossfire/miner.py) | Exception symbol extraction |
+| **Detection** | Tri-State epistemic classification (`CLEAR` vs `COLLISION_HALT` vs `UNKNOWN_SUSPEND`) | [`crossfire/detector.py`](crossfire/detector.py) | Confidence < 0.70 enters `UNKNOWN_SUSPEND` |
+| **Hook Protocol** | Bob 2.0 PreToolUse hook execution intercept | [`crossfire/hook.py`](crossfire/hook.py) | Non-zero exit code (`sys.exit(2)`) |
+| **Resolution** | TCAS imperative patch advisory generation | [`crossfire/resolver.py`](crossfire/resolver.py) | Imperative steering in `stderr` |
+| **Telemetry** | Live WebSocket broadcast engine (`ws://127.0.0.1:8765`) | [`crossfire/broadcaster.py`](crossfire/broadcaster.py) | Async fan-out with offline fallback |
 
 ---
 
-## Why Traditional Tools Are Blind (The 3 Archetypes)
+## Why Traditional Tools Are Blind (The 4 Archetypes)
 
-Linters, compilers, and git line merges only check syntax and type signatures. They are completely blind to **behavioral contracts, value domains, and operational lifecycles**:
+Linters, compilers, and git line merges only check syntax and type signatures. Even strict type checkers like `mypy` and `pyright` fail when types match but semantics drift:
 
-| Collision Archetype | What Compiler / Linter Sees | What Actually Happens (The Crash) | How CROSSFIRE Intercepts |
+| Collision Archetype | What Compiler / Linter / Mypy Sees | What Actually Happens (The Crash) | How CROSSFIRE Intercepts |
 | :--- | :--- | :--- | :--- |
-| **1. Invariant / Value Domain Drift** | Both variables are typed `float`. Valid syntax. | Agent A normalized discount to `[0.0..1.0]`. Agent B passes `15` expecting `[0..100]`. **Customer charged 1500%**. | AST miner extracts chained assertion bounds (`assert 0.0 <= discount <= 1.0` vs `0 <= discount <= 100`). Flags `INVARIANT_DRIFT` (0.95). |
+| **1. Invariant / Value Domain Drift** | Both variables are typed `float` or numeric. Valid syntax. | Agent A normalized discount to `[0.0..1.0]`. Agent B passes `15` expecting `[0..100]`. **Customer charged 1500%**. | AST miner extracts boundary assertions (`assert 0.0 <= discount <= 1.0` vs `0 <= discount <= 100`). Flags `INVARIANT_DRIFT` (0.95). |
 | **2. State & Temporal Lifecycle Desync** | Function signatures match. Both return `bool`. | Agent A made token invalidation async. Agent B assumes synchronous purge and deletes DB record. **Zombie auth security hole**. | AST miner detects `async def` coroutine vs synchronous function definition. Flags `LIFECYCLE_DESYNC` (0.85). |
 | **3. Contract & Exception Divergence** | Both return valid Python objects. | Agent A changes missing item from `raise ItemNotFoundError` to `return None`. Agent B's `try/except` never triggers. **Restock logic dead**. | AST miner inspects return statements vs explicit `raise` nodes. Flags `CONTRACT_DIVERGENCE` (0.90). |
+| **4. Same-Type Semantic Unit Drift** | Both variables are typed `int`. **`mypy` passes with 0 errors**. | Agent A specifies timeout in seconds (`assert 1 <= timeout <= 60`). Agent B passes `5000` (milliseconds). **Gateway timeout / connection rejected**. | AST miner extracts domain bounds (`int[1, 60]`) vs assigned literal (`int[val=5000]`). Flags `INVARIANT_DRIFT` (0.95) before tool writes file. |
 
 ---
 

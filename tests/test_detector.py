@@ -153,3 +153,32 @@ def test_tri_state_law_epistemic_refusal() -> None:
     assert cols_low[0].epistemic_reason is not None
     assert "Epistemic Refusal" in cols_low[0].epistemic_reason
 
+
+def test_detect_semantic_unit_drift_same_type_defeats_mypy() -> None:
+    """Verify that CROSSFIRE catches semantic unit drift (seconds vs milliseconds)
+    even when types are 100% identical (int vs int), completely defeating static type checkers.
+    """
+    source_a = (FIXTURES_DIR / "agent_a_timeout.py").read_text(encoding="utf-8")
+    source_b = (FIXTURES_DIR / "agent_b_timeout.py").read_text(encoding="utf-8")
+
+    claims_a = extract_claims(source_a, agent_id="agent_a")
+    claims_b = extract_claims(source_b, agent_id="agent_b")
+
+    # Both symbols are 'timeout', both are valid python integers
+    assert any(c.symbol == "timeout" and c.domain == "int[1, 60]" for c in claims_a)
+    assert any(c.symbol == "timeout" and "int[val=5000]" in c.domain for c in claims_b)
+
+    collisions = detect_collisions(claims_a, claims_b)
+    assert len(collisions) >= 1
+
+    timeout_cols = [c for c in collisions if c.claim_a.symbol == "timeout"]
+    assert len(timeout_cols) == 1
+
+    col = timeout_cols[0]
+    assert col.collision_class == "invariant_drift"
+    assert col.severity >= 0.90
+    assert col.halted is True
+    assert "int[1, 60]" in col.description
+    assert "int[val=5000]" in col.description
+
+
