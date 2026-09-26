@@ -81,6 +81,25 @@ Collision Archetype          | Git Merge   | Linter/Types  | Standard Exec   | C
 | **Resolution** | TCAS imperative patch advisory generation | [`crossfire/resolver.py`](crossfire/resolver.py) | Imperative steering in `stderr` |
 | **Telemetry** | Live WebSocket broadcast engine (`ws://127.0.0.1:8765`) | [`crossfire/broadcaster.py`](crossfire/broadcaster.py) | Async fan-out with offline fallback |
 
+### Contract Binding Pipeline: How Invariants Are Connected
+
+How does CROSSFIRE determine that two independent facts across agent scratchpads belong to the same semantic contract?
+
+```mermaid
+flowchart TD
+    A["Raw Invariant Claim (AST Miner)"] --> B["Symbol & Scope Resolution (miner.py)"]
+    B --> C["Contract Extraction (Value Domain / Lifecycle / Exception Contract)"]
+    C --> D["Cross-Agent Intersect (Shared Symbol / Call Site across Scratchpads)"]
+    D --> E{"Epistemic Confidence >= 0.70?"}
+    E -->|Yes: Contradictory Bounds| F["COLLISION_HALT (Exit Code 2 + Patch Hint)"]
+    E -->|Yes: Concordant Bounds| G["CLEAR (Exit Code 0 - Continue)"]
+    E -->|No: Aliased or Ambiguous| H["UNKNOWN_SUSPEND (Refuses to Guess / Human Review)"]
+```
+
+1. **Symbol & Parameter Binding:** Co-modified scratchpads are scanned for identical symbol names, function signatures, and call-site arguments (`timeout`, `discount`, `evict_session`, `get_item`).
+2. **Explicit Contradiction:** When both agents bind to the same symbol with mutually exclusive constraints (e.g. `int[1, 60]` vs `int[val=5000]`), the vector is flagged as high-confidence contradiction (`COLLISION_HALT`).
+3. **Epistemic Refusal on Aliasing:** When agents introduce divergent names for an implicit concept (e.g. `MAX_RETRY = 5` vs `retry_policy(attempts=10)`), CROSSFIRE does not guess. The lack of direct AST binding lowers confidence below `0.70`, safely triggering `UNKNOWN_SUSPEND` rather than hallucinating a false positive.
+
 ---
 
 ## Why Traditional Tools Are Blind (The 4 Archetypes)

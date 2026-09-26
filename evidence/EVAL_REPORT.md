@@ -105,3 +105,5 @@ Senior engineers know all static analysis has defined boundaries. CROSSFIRE expl
    - Dynamic reflection (`getattr(module, dynamic_string)`) and runtime `eval()` are intentionally ignored by the static AST miner. When unresolvable dynamic mutations occur, the engine refuses to guess domain contracts and defaults to `UNKNOWN_SUSPEND`.
 3. **Synthetic Archetype Baseline:**
    - The primary test corpus uses synthetic fixtures representing real multi-agent failure modes. It is tuned for deterministic verification, not an open-domain claim of solving the Halting Problem.
+4. **Explicit Symbol Identity vs Inter-Procedural Aliasing:**
+   - CROSSFIRE maps semantic contracts where co-running subagents touch shared symbols, parameter signatures, or invocations (`timeout`, `discount`, `evict_session`, `get_item`). When two agents introduce divergent names for the same underlying concept (`MAX_RETRY = 5` vs `retry_policy(attempts=10)`), CROSSFIRE does not guess—the lack of explicit binding drops confidence below 0.70, safely triggering `UNKNOWN_SUSPEND` for human review.

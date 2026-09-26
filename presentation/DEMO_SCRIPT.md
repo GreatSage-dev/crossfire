@@ -66,8 +66,8 @@ Collision Archetype          | Git Merge   | Linter / Mypy | Standard Exec   | C
 ```
 
 #### NARRATION:
-> *"Across four fatal multi-agent archetypes—value scale drift, async/sync lifecycle desync, error contract divergence, and same-type unit drift—standard tools pass one hundred percent of the time directly into production outages.*  
-> *In every single scenario, CROSSFIRE intercepts and halts the tool runner."*
+> *"In our four controlled collision cases, Git and static type checking do not detect the cross-agent semantic conflict.*  
+> *CROSSFIRE intercepts and halts the tool runner across all four."*
 
 ---
 
