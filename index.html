@@ -1,11 +1,886 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta http-equiv="refresh" content="0; url=/ui/">
-  <script>window.location.href = "/ui/";</script>
-  <title>CROSSFIRE</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CROSSFIRE — Collision Avoidance for Parallel Agents</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <style>
+    /* ───────────────────────────────────────────────
+       TOKENS
+    ─────────────────────────────────────────────── */
+    :root {
+      --bg-void:      #0D0D0D;
+      --bg-card:      #161616;
+      --bg-border:    #252525;
+      --accent-fire:  #E8611A;
+      --accent-amber: #F5A623;
+      --text-primary: #F0EDE8;
+      --text-muted:   #666666;
+      --font-display: 'Inter', system-ui, sans-serif;
+      --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+    }
+
+    /* ───────────────────────────────────────────────
+       RESET
+    ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: auto; /* Lenis handles this */ }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ───────────────────────────────────────────────
+       SVG DOT-GRID BACKGROUND (Magic UI pattern)
+    ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, #333 0.8px, transparent 0.8px);
+      background-size: 24px 24px;
+      opacity: 0.35;
+    }
+
+    /* ───────────────────────────────────────────────
+       TYPOGRAPHY — all sizes fluid via clamp()
+    ─────────────────────────────────────────────── */
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.05;
+      letter-spacing: -0.03em; /* optical tightening at large sizes */
+    }
+
+    h1 { font-size: clamp(2.8rem, 6.5vw, 5.2rem); }
+    h2 { font-size: clamp(2rem, 4.5vw, 3.4rem); }
+    h3 { font-size: clamp(1.25rem, 2vw, 1.75rem); }
+
+    em, .accent-italic {
+      font-weight: 400;
+      font-style: italic;
+      color: var(--accent-amber);
+    }
+
+    p, a, span, button, label, .mono {
+      font-family: var(--font-mono);
+    }
+
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    /* ───────────────────────────────────────────────
+       LAYOUT
+    ─────────────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 32px);
+      position: relative;
+      z-index: 1;
+    }
+
+    section { position: relative; }
+
+    /* ───────────────────────────────────────────────
+       PILL COMPONENTS
+    ─────────────────────────────────────────────── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    .pill-fire {
+      background: var(--accent-fire);
+      color: var(--bg-void);
+    }
+
+    .pill-outline {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+      background: transparent;
+    }
+
+    .pill-ghost {
+      border-color: var(--bg-border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 5px 12px;
+    }
+
+    /* magnetic hover handled in JS */
+
+    /* ───────────────────────────────────────────────
+       1. NAVIGATION — fixed, transparent
+    ─────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(13, 13, 13, 0.7);
+      border-bottom: 1px solid var(--bg-border);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 32px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 36px;
+    }
+
+    .nav-links a {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--accent-fire);
+      transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links a:hover::after { width: 100%; }
+
+    /* ───────────────────────────────────────────────
+       2. HERO — full viewport, atmospheric glow
+    ─────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 0 80px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* Warm radial atmospheric glow (Growaz reference) */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120%;
+      height: 80%;
+      background: radial-gradient(
+        ellipse 60% 50% at 50% 20%,
+        rgba(245, 166, 35, 0.08) 0%,
+        rgba(232, 97, 26, 0.04) 30%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-frame {
+      position: relative;
+      border: 1px dashed var(--bg-border);
+      padding: clamp(40px, 6vw, 100px) clamp(24px, 5vw, 80px);
+      max-width: 900px;
+      z-index: 2;
+    }
+
+    /* Dashed corner accents */
+    .hero-frame::before,
+    .hero-frame::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--accent-amber);
+      border-style: solid;
+    }
+
+    .hero-frame::before {
+      top: -1px; left: -1px;
+      border-width: 1px 0 0 1px;
+    }
+
+    .hero-frame::after {
+      bottom: -1px; right: -1px;
+      border-width: 0 1px 1px 0;
+    }
+
+    .hero h1 { position: relative; z-index: 2; margin-bottom: 24px; }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: clamp(0.8rem, 1.5vw, 1rem);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    /* Floating annotation pills — Growaz style with float animation */
+    .float-pill {
+      position: absolute;
+      z-index: 5;
+      animation: pill-float 3.5s ease-in-out infinite;
+    }
+
+    .fp-tl { top: -14px; left: 8%; animation-delay: 0s; }
+    .fp-tr { top: 12%; right: -8px; animation-delay: 0.8s; }
+    .fp-br { bottom: 18%; right: -24px; animation-delay: 1.6s; }
+
+    @keyframes pill-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    /* SVG Radar — CSS-only animation */
+    .radar-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 60px auto 0;
+      opacity: 0.45;
+      z-index: 2;
+    }
+
+    .radar-wrap svg { width: 100%; height: 100%; }
+
+    .radar-sweep {
+      transform-origin: 140px 140px;
+      animation: sweep 4s linear infinite;
+    }
+
+    @keyframes sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .radar-dot-pulse {
+      animation: dot-pulse 2.5s ease-in-out infinite;
+    }
+
+    .rd-1 { animation-delay: 0s; }
+    .rd-2 { animation-delay: 0.9s; }
+    .rd-3 { animation-delay: 1.8s; }
+
+    @keyframes dot-pulse {
+      0%, 100% { r: 3; opacity: 1; }
+      50% { r: 6; opacity: 0.3; }
+    }
+
+    /* ───────────────────────────────────────────────
+       3. ABOUT STRIP — pinned feel
+    ─────────────────────────────────────────────── */
+    .about-strip {
+      padding: clamp(60px, 10vw, 120px) 0;
+      text-align: center;
+      background: var(--bg-card);
+      border-top: 1px solid var(--bg-border);
+      border-bottom: 1px solid var(--bg-border);
+    }
+
+    .about-label {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      margin-bottom: 28px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .about-text {
+      max-width: 580px;
+      margin: 0 auto 36px;
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    /* ───────────────────────────────────────────────
+       4. COLLISION PROOF — 3 cards, clip-path entrance
+    ─────────────────────────────────────────────── */
+    .collision-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 60px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 4px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      clip-path: inset(100% 0 0 0);
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-fire);
+    }
+
+    .card:hover .card-add {
+      background: var(--accent-fire);
+      color: var(--bg-void);
+    }
+
+    .card-num {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+
+    .card-add {
+      margin-top: auto;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--accent-fire);
+      color: var(--accent-fire);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-add:hover {
+      transform: scale(1.1) rotate(90deg);
+    }
+
+    /* ───────────────────────────────────────────────
+       5. DEMO TERMINAL
+    ─────────────────────────────────────────────── */
+    .demo-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+      border-top: 1px solid var(--bg-border);
+      border-bottom: 1px solid var(--bg-border);
+    }
+
+    .demo-section h2 {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .terminal {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 4px;
+      max-width: 880px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bg-border);
+      gap: 8px;
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .terminal-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--bg-border);
+    }
+
+    .terminal-dots span:nth-child(1) { background: #ff5f56; border-color: #e0443e; }
+    .terminal-dots span:nth-child(2) { background: #ffbd2e; border-color: #dea123; }
+    .terminal-dots span:nth-child(3) { background: #27c93f; border-color: #1aab29; }
+
+    .terminal-title {
+      margin: 0 auto;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+    }
+
+    .terminal-body {
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .terminal pre {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: clamp(0.7rem, 1.2vw, 0.875rem);
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    .tw { color: var(--accent-fire); }   /* warn */
+    .ta { color: var(--accent-amber); }  /* advisory */
+    .td { color: var(--text-muted); }    /* dim */
+
+    /* Glowing border pulse on terminal during COLLISION state */
+    .terminal-glow {
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { border-color: var(--bg-border); }
+      50% { border-color: var(--accent-fire); }
+    }
+
+    /* ───────────────────────────────────────────────
+       6. HOW IT WORKS — 3 Steps
+    ─────────────────────────────────────────────── */
+    .how-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+    }
+
+    .how-section h2 {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .steps-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+
+    .step {
+      padding-left: 24px;
+      border-left: 1px solid var(--bg-border);
+      transition: border-color 0.3s;
+    }
+
+    .step:hover { border-color: var(--accent-fire); }
+
+    .step-num {
+      display: block;
+      font-family: var(--font-mono);
+      color: var(--accent-amber);
+      font-size: 1.125rem;
+      margin-bottom: 16px;
+    }
+
+    .step h3 { margin-bottom: 12px; }
+
+    .step p {
+      color: var(--text-muted);
+      font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+      line-height: 1.6;
+    }
+
+    /* ───────────────────────────────────────────────
+       7. FOOTER
+    ─────────────────────────────────────────────── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--bg-border);
+      background: var(--bg-card);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    /* ───────────────────────────────────────────────
+       RESPONSIVE
+    ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .steps-row { grid-template-columns: 1fr; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+      .hero-frame { border: none; padding: 40px 16px; }
+      .float-pill { position: static; margin: 6px; display: inline-flex; transform: none; animation: none; }
+      .footer-inner { flex-direction: column; gap: 12px; text-align: center; }
+    }
+
+    /* ───────────────────────────────────────────────
+       REDUCED MOTION
+    ─────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
 </head>
-<body style="background:#0D0D0D; color:#F0EDE8; font-family:monospace; display:flex; justify-content:center; align-items:center; height:100vh;">
-  <p>Redirecting to <a href="/ui/" style="color:#E8611A;">CROSSFIRE Operations Cockpit</a>...</p>
+<body>
+
+  <!-- ══════ 1. NAV ══════ -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">CROSSFIRE</div>
+      <div class="nav-links">
+        <a href="#">Home</a>
+        <a href="#about">About</a>
+        <a href="#how">How It Works</a>
+        <a href="#demo">Demo</a>
+      </div>
+      <a href="dashboard.html" class="pill pill-fire magnetic">» Launch Console</a>
+    </div>
+  </nav>
+
+  <!-- ══════ 2. HERO ══════ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-frame">
+        <!-- Floating annotation pills — asymmetric, Growaz-style -->
+        <div class="pill pill-fire float-pill fp-tl">TCAS</div>
+        <div class="pill pill-outline float-pill fp-tr">Real-Time</div>
+        <div class="pill pill-outline float-pill fp-br">Zero False Positives</div>
+
+        <h1>
+          Collision Avoidance<br>
+          for <em>Parallel Agents</em>
+        </h1>
+
+        <p class="hero-subtitle">
+          Intercept incompatible assumptions between co-running AI subagents
+          before they crash production. TCAS-grade collision detection
+          for the agentic era.
+        </p>
+
+        <a href="#demo" class="pill pill-fire magnetic">» Get Started</a>
+      </div>
+
+      <!-- SVG Radar — proper SVG, not divs -->
+      <div class="radar-wrap">
+        <svg viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- concentric rings -->
+          <circle cx="140" cy="140" r="40" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <circle cx="140" cy="140" r="80" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <circle cx="140" cy="140" r="120" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <!-- crosshair -->
+          <line x1="140" y1="20" x2="140" y2="260" stroke="var(--bg-border)" stroke-width="0.3"/>
+          <line x1="20" y1="140" x2="260" y2="140" stroke="var(--bg-border)" stroke-width="0.3"/>
+          <!-- sweep line -->
+          <line class="radar-sweep" x1="140" y1="140" x2="140" y2="20"
+                stroke="var(--accent-fire)" stroke-width="1.5" opacity="0.6"/>
+          <!-- threat dots -->
+          <circle class="radar-dot-pulse rd-1" cx="100" cy="80" r="3" fill="var(--accent-fire)"/>
+          <circle class="radar-dot-pulse rd-2" cx="200" cy="180" r="3" fill="var(--accent-amber)"/>
+          <circle class="radar-dot-pulse rd-3" cx="170" cy="100" r="3" fill="var(--accent-fire)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 3. ABOUT STRIP ══════ -->
+  <section id="about" class="about-strip">
+    <div class="container">
+      <span class="about-label">About CROSSFIRE</span>
+      <p class="about-text">
+        CROSSFIRE is not just another monitoring tool. It's a TCAS-grade
+        collision avoidance system purpose-built for the era of parallel AI agents.
+        When Agent A assumes <code>discount</code> is <code>float[0.0, 1.0]</code>
+        and Agent B assumes <code>int[0, 100]</code>, CROSSFIRE detects the
+        invariant drift before it reaches production — and issues a
+        Resolution Advisory to correct it.
+      </p>
+      <a href="#" class="pill pill-fire magnetic">» About Us</a>
+    </div>
+  </section>
+
+  <!-- ══════ 4. COLLISION PROOF ══════ -->
+  <section class="collision-section container">
+    <div class="section-header">
+      <h2>Collisions that<br><em>we intercept</em></h2>
+      <a href="dashboard.html" class="pill pill-fire magnetic">» View All</a>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card" data-card>
+        <div class="card-num">01</div>
+        <h3>Invariant Drift</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Value Domain</span>
+          <span class="pill pill-ghost">Float vs Int</span>
+          <span class="pill pill-ghost">Boundary Mismatch</span>
+          <span class="pill pill-ghost">Severity 0.95</span>
+        </div>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+
+      <div class="card" data-card>
+        <div class="card-num">02</div>
+        <h3>Lifecycle Desync</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Async vs Sync</span>
+          <span class="pill pill-ghost">State Machine</span>
+          <span class="pill pill-ghost">Race Condition</span>
+          <span class="pill pill-ghost">Severity 0.85</span>
+        </div>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+
+      <div class="card" data-card>
+        <div class="card-num">03</div>
+        <h3>Contract Divergence</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Error Handling</span>
+          <span class="pill pill-ghost">None vs Exception</span>
+          <span class="pill pill-ghost">API Contract</span>
+          <span class="pill pill-ghost">Severity 0.90</span>
+        </div>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 5. DEMO TERMINAL ══════ -->
+  <section id="demo" class="demo-section">
+    <div class="container">
+      <h2>See it <em>in action</em></h2>
+
+      <div class="terminal terminal-glow">
+        <div class="terminal-bar">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="terminal-title">crossfire verify</div>
+        </div>
+        <div class="terminal-body">
+<pre>
+<span class="td">$ crossfire verify --path tests/fixtures/</span>
+
+┌─────────────────┬────────────────────┬──────────┬─────────┐
+│ Symbol          │ Collision Class    │ Severity │ Halted  │
+├─────────────────┼────────────────────┼──────────┼─────────┤
+│ discount        │ INVARIANT_DRIFT    │ 0.95     │ ✓       │
+│ evict_session   │ LIFECYCLE_DESYNC   │ 0.85     │ ✓       │
+│ get_item        │ CONTRACT_DIVERGENCE│ 0.90     │ ✓       │
+└─────────────────┴────────────────────┴──────────┴─────────┘
+
+<span class="tw">⚠  3 collision(s) detected — HALTING agent execution.</span>
+
+Resolution Advisory:
+<span class="ta">▸</span> discount: Normalize Agent B to float[0.0, 1.0] domain
+<span class="ta">▸</span> evict_session: Align Agent B to async lifecycle
+<span class="ta">▸</span> get_item: Update Agent A to raise ItemNotFoundError
+</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 6. HOW IT WORKS ══════ -->
+  <section id="how" class="how-section container">
+    <h2>How CROSSFIRE <em>works</em></h2>
+    <div class="steps-row">
+      <div class="step">
+        <span class="step-num">01</span>
+        <h3>Mine</h3>
+        <p>AST-level extraction of invariant claims from agent scratchpads using Python's ast.NodeVisitor.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <h3>Detect</h3>
+        <p>Cross-agent collision detection across 3 collision classes — invariant drift, lifecycle desync, contract divergence.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <h3>Resolve</h3>
+        <p>TCAS-grade Resolution Advisories with imperative patch hints and target agent identification.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 7. FOOTER ══════ -->
+  <footer>
+    <div class="container footer-inner">
+      <div class="nav-brand">CROSSFIRE</div>
+      <div>Built for the IBM Bob 2.0 Hackathon</div>
+      <div>&copy; 2026 Mrsage</div>
+    </div>
+  </footer>
+
+  <!-- ════════════════════════════════════════════════
+       SCRIPTS — CDN loaded, no npm
+  ════════════════════════════════════════════════ -->
+
+  <!-- Lenis smooth scroll -->
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+  <script>
+    /* ── Respect reduced motion ── */
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ── Lenis ── */
+    if (!prefersReduced) {
+      const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
+      function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+      // Sync GSAP ScrollTrigger with Lenis
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+    }
+
+    /* ── GSAP ScrollTrigger ── */
+    gsap.registerPlugin(ScrollTrigger);
+
+    if (!prefersReduced) {
+      /* Card clip-path wipe entrances — staggered, scrubbed */
+      gsap.utils.toArray('[data-card]').forEach((card, i) => {
+        gsap.to(card, {
+          clipPath: 'inset(0% 0 0 0)',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: card,
+            start: 'top 90%',
+            end: 'top 50%',
+            scrub: 1.5,
+          }
+        });
+      });
+
+      /* Steps — slide in from left with opacity */
+      gsap.utils.toArray('.step').forEach((step, i) => {
+        gsap.from(step, {
+          x: -40,
+          opacity: 0,
+          duration: 0.8,
+          delay: i * 0.15,
+          scrollTrigger: {
+            trigger: step,
+            start: 'top 85%',
+          }
+        });
+      });
+
+      /* Terminal — reveal with scale */
+      gsap.from('.terminal', {
+        scale: 0.95,
+        opacity: 0,
+        duration: 1,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '.terminal',
+          start: 'top 80%',
+        }
+      });
+
+      /* About text — words reveal */
+      const aboutText = document.querySelector('.about-text');
+      if (aboutText) {
+        gsap.from(aboutText, {
+          opacity: 0,
+          y: 30,
+          duration: 1,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: aboutText,
+            start: 'top 80%',
+          }
+        });
+      }
+    }
+
+    /* ── Magnetic button effect ── */
+    document.querySelectorAll('.magnetic').forEach(btn => {
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const relX = e.clientX - (rect.left + rect.width / 2);
+        const relY = e.clientY - (rect.top + rect.height / 2);
+        btn.style.transform = `translate(${relX * 0.25}px, ${relY * 0.25}px)`;
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'translate(0, 0)';
+      });
+    });
+  </script>
+
 </body>
 </html>
