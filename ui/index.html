@@ -1,3118 +1,886 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CROSSFIRE — Air Traffic Collision Avoidance System for Parallel AI Agents</title>
-  
-  <!-- Exact Variable Google Fonts: IBM Plex Mono + Inter -->
+  <title>CROSSFIRE — Collision Avoidance for Parallel Agents</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
   <style>
-    /* ==========================================================================
-       CROSSFIRE VISUAL DESIGN SYSTEM — STRICT 6-TOKEN SPECIFICATION
-       Aviation Tactical Operations Room Aesthetic.
-       Zero generic patterns: no card drop-shadows, no generic blue accents.
-       ========================================================================== */
+    /* ───────────────────────────────────────────────
+       TOKENS
+    ─────────────────────────────────────────────── */
     :root {
-      --bg-void:       #0D0D0D;   /* Absolute near-black canvas */
-      --bg-card:       #161616;   /* Tactical card & console surface */
-      --bg-border:     #252525;   /* Hairline coordinate dividers */
-      --accent-fire:   #E8611A;   /* Primary accent — collision alert & radar pulse */
-      --accent-amber:  #F5A623;   /* Secondary — warnings, label badges & resolution */
-      --text-primary:  #F0EDE8;   /* Warm off-white aeronautical readout */
-      --text-muted:    #666666;   /* Telemetry metadata, coordinates & subdued info */
-
-      /* Typography Font Stacks */
-      --font-display: "Neue Haas Grotesk", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono:    "IBM Plex Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-      /* Fluid Clamp Type Scale */
-      --type-hero:      clamp(2.8rem, 5.5vw, 5.2rem);
-      --type-h2:        clamp(1.8rem, 3.2vw, 2.8rem);
-      --type-card-h:    1.25rem;
-      --type-body:      0.95rem;
-      --type-label:     0.75rem;
-      --type-meta:      0.7rem;
-
-      /* Layout Geometry */
-      --max-width: 1320px;
-      --gutter: 24px;
-      --radius-subtle: 6px;
-      --radius-glass: 12px;
-      --radius-pill: 9999px;
+      --bg-void:      #0D0D0D;
+      --bg-card:      #161616;
+      --bg-border:    #252525;
+      --accent-fire:  #E8611A;
+      --accent-amber: #F5A623;
+      --text-primary: #F0EDE8;
+      --text-muted:   #666666;
+      --font-display: 'Inter', system-ui, sans-serif;
+      --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
     }
 
-    /* Reset & Base Canvas */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      background-color: var(--bg-void);
-      color: var(--text-primary);
-      font-family: var(--font-mono);
-      font-size: 16px;
-      line-height: 1.65;
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      overflow-x: hidden;
-    }
-
-    /* Lenis Smooth Scroll Configuration (Clean Native Scroll) */
-    html.lenis, html.lenis body {
-      height: auto;
-    }
-    .lenis.lenis-smooth {
-      scroll-behavior: auto !important;
-    }
-    .lenis.lenis-smooth [data-lenis-prevent] {
-      overscroll-behavior: contain;
-    }
-    .lenis.lenis-stopped {
-      overflow: hidden;
-    }
+    /* ───────────────────────────────────────────────
+       RESET
+    ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: auto; /* Lenis handles this */ }
 
     body {
       background-color: var(--bg-void);
       color: var(--text-primary);
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    ::selection {
-      background-color: var(--accent-fire);
-      color: var(--bg-void);
-    }
-
-    h1, h2, h3, h4, .font-display {
-      font-family: var(--font-display);
-      font-weight: 700;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      color: var(--text-primary);
-    }
-
-    p, code, pre, span, label, input, button, .font-mono {
       font-family: var(--font-mono);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    .brand-title {
-      font-family: var(--font-display);
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .headline-italic {
-      font-family: var(--font-display);
-      font-weight: 400;
-      font-style: italic;
-      color: var(--accent-fire);
-      letter-spacing: -0.02em;
-    }
-
-    /* ==========================================================================
-       THREE.JS WEBGL LIVING BACKGROUND CANVAS (Shader Gradient 3D Organic Mesh)
-       ========================================================================== */
-    #gradient-canvas {
+    /* ───────────────────────────────────────────────
+       SVG DOT-GRID BACKGROUND (Magic UI pattern)
+    ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
+      inset: 0;
       z-index: 0;
-    }
-
-    /* Precision Aviation Dot-Grid Overlay */
-    .viewport-grid-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
       pointer-events: none;
-      z-index: 1;
-      opacity: 0.28;
-      background-image: 
-        radial-gradient(circle at 1px 1px, var(--bg-border) 1px, transparent 1px);
-      background-size: 32px 32px;
-    }
-
-    /* Scanline Subtle CRT Overlay */
-    .scanline-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 2;
-      background: linear-gradient(
-        to bottom,
-        rgba(255,255,255,0),
-        rgba(255,255,255,0) 50%,
-        rgba(0, 0, 0, 0.2) 50%,
-        rgba(0, 0, 0, 0.2)
-      );
-      background-size: 100% 4px;
+      background-image: radial-gradient(circle, #333 0.8px, transparent 0.8px);
+      background-size: 24px 24px;
       opacity: 0.35;
     }
 
-    /* Container Structure */
-    .container {
-      width: 100%;
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: 0 var(--gutter);
-      position: relative;
-      z-index: 10;
+    /* ───────────────────────────────────────────────
+       TYPOGRAPHY — all sizes fluid via clamp()
+    ─────────────────────────────────────────────── */
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.05;
+      letter-spacing: -0.03em; /* optical tightening at large sizes */
     }
 
-    /* ==========================================================================
-       TOP NAVIGATION BAR WITH LIQUID LOGO CANVAS
-       ========================================================================== */
-    .navbar {
+    h1 { font-size: clamp(2.8rem, 6.5vw, 5.2rem); }
+    h2 { font-size: clamp(2rem, 4.5vw, 3.4rem); }
+    h3 { font-size: clamp(1.25rem, 2vw, 1.75rem); }
+
+    em, .accent-italic {
+      font-weight: 400;
+      font-style: italic;
+      color: var(--accent-amber);
+    }
+
+    p, a, span, button, label, .mono {
+      font-family: var(--font-mono);
+    }
+
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    /* ───────────────────────────────────────────────
+       LAYOUT
+    ─────────────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 32px);
+      position: relative;
+      z-index: 1;
+    }
+
+    section { position: relative; }
+
+    /* ───────────────────────────────────────────────
+       PILL COMPONENTS
+    ─────────────────────────────────────────────── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 9999px;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    .pill-fire {
+      background: var(--accent-fire);
+      color: var(--bg-void);
+    }
+
+    .pill-outline {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+      background: transparent;
+    }
+
+    .pill-ghost {
+      border-color: var(--bg-border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 5px 12px;
+    }
+
+    /* magnetic hover handled in JS */
+
+    /* ───────────────────────────────────────────────
+       1. NAVIGATION — fixed, transparent
+    ─────────────────────────────────────────────── */
+    nav {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 72px;
+      right: 0;
       z-index: 100;
-      display: flex;
-      align-items: center;
-      transition: background-color 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
-      background: rgba(13, 13, 13, 0.5);
-      border-bottom: 1px solid rgba(37, 37, 37, 0.5);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .navbar.scrolled {
-      background-color: rgba(13, 13, 13, 0.94);
+      padding: 20px 0;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      background: rgba(13, 13, 13, 0.7);
       border-bottom: 1px solid var(--bg-border);
     }
 
     .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 32px);
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      width: 100%;
+      align-items: center;
     }
 
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-size: 0.875rem;
       color: var(--text-primary);
     }
 
-    /* Canvas container for WebGL Liquid Logo in Navbar */
-    .nav-logo-box {
-      width: 32px;
-      height: 32px;
-      position: relative;
+    .nav-links {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      gap: 36px;
     }
 
-    .nav-logo-canvas {
-      width: 32px;
-      height: 32px;
-      display: block;
-      border-radius: 50%;
-    }
-
-    .brand-name {
-      font-size: 1.15rem;
-      letter-spacing: 0.14em;
-    }
-
-    .nav-telemetry {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-      list-style: none;
-    }
-
-    .nav-telemetry li a {
+    .nav-links a {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
       color: var(--text-muted);
-      text-decoration: none;
-      font-size: var(--type-meta);
-      letter-spacing: 0.08em;
-      transition: color 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      transition: color 0.2s;
+      position: relative;
     }
 
-    .nav-telemetry li a:hover,
-    .nav-telemetry li a.active {
-      color: var(--text-primary);
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--accent-fire);
+      transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .nav-telemetry li a:hover .nav-dot {
-      background-color: var(--accent-fire);
-    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links a:hover::after { width: 100%; }
 
-    .nav-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background-color: var(--text-muted);
-      transition: background-color 0.2s ease;
-    }
-
-    .nav-status-chip {
-      font-size: var(--type-meta);
-      color: var(--accent-amber);
-      padding: 5px 12px;
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-pill);
-      background-color: rgba(22, 22, 22, 0.8);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      letter-spacing: 0.06em;
-    }
-
-    .pulse-beacon {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--accent-amber);
-      animation: pulse-glow 2s infinite ease-in-out;
-    }
-
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.35; transform: scale(0.8); }
-    }
-
-    /* Action Buttons (Strictly no generic buttons) */
-    .btn-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-radius: var(--radius-pill);
-      padding: 10px 22px;
-      font-family: var(--font-mono);
-      font-size: var(--type-meta);
-      font-weight: 600;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 1px solid transparent;
-      user-select: none;
-      white-space: nowrap;
-    }
-
-    .btn-pill:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background-color: var(--accent-fire);
-      color: var(--bg-void);
-      border-color: var(--accent-fire);
-    }
-
-    .btn-primary:hover {
-      background-color: #f06c27;
-      box-shadow: 0 0 20px rgba(232, 97, 26, 0.35);
-    }
-
-    .btn-secondary {
-      background-color: rgba(22, 22, 22, 0.85);
-      color: var(--text-primary);
-      border-color: var(--bg-border);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--accent-amber);
-      color: var(--accent-amber);
-      background-color: rgba(26, 26, 26, 0.95);
-    }
-
-    /* ==========================================================================
-       SECTION 1: HERO SECTION & LIQUID METAL EMBLEM
-       ========================================================================== */
-    .hero-section {
+    /* ───────────────────────────────────────────────
+       2. HERO — full viewport, atmospheric glow
+    ─────────────────────────────────────────────── */
+    .hero {
+      position: relative;
       min-height: 100vh;
-      padding-top: 130px;
-      padding-bottom: 80px;
-      display: flex;
-      align-items: center;
-      position: relative;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 48px;
-      align-items: center;
-      width: 100%;
-    }
-
-    .hero-content {
-      position: relative;
-    }
-
-    /* Structural Invariant Dashed Frame */
-    .hero-frame {
-      border: 1px dashed var(--bg-border);
-      padding: clamp(24px, 4vw, 44px);
-      position: relative;
-      background-color: rgba(22, 22, 22, 0.45);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .hero-frame::before {
-      content: "AST-TCAS-01 // AIRSPACE COCKPIT";
-      position: absolute;
-      top: -9px;
-      left: 24px;
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      color: var(--accent-amber);
-      background-color: var(--bg-void);
-      padding: 0 8px;
-    }
-
-    .hero-kicker-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .hero-kicker {
-      font-size: var(--type-meta);
-      color: var(--accent-fire);
-      letter-spacing: 0.14em;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .kicker-divider {
-      color: var(--bg-border);
-    }
-
-    .hero-headline {
-      font-size: var(--type-hero);
-      line-height: 1.02;
-      margin-bottom: 24px;
-      letter-spacing: -0.03em;
-    }
-
-    .hero-lead {
-      font-size: var(--type-body);
-      color: var(--text-primary);
-      opacity: 0.88;
-      line-height: 1.7;
-      margin-bottom: 32px;
-      max-width: 580px;
-    }
-
-    .hero-cta-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 16px;
-    }
-
-    /* Floating Aeronautical Pills */
-    .floating-pill {
-      position: absolute;
-      background-color: rgba(22, 22, 22, 0.9);
-      border: 1px solid var(--accent-fire);
-      border-radius: var(--radius-pill);
-      padding: 6px 14px;
-      font-size: var(--type-meta);
-      font-family: var(--font-mono);
-      font-weight: 500;
-      color: var(--accent-fire);
-      letter-spacing: 0.08em;
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 12;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    }
-
-    .pill-drift {
-      top: -18px;
-      right: 36px;
-      animation: float-drift 5s ease-in-out infinite;
-    }
-
-    .pill-vector {
-      bottom: -16px;
-      left: 48px;
-      animation: float-vector 6s ease-in-out infinite;
-      border-color: var(--accent-amber);
-      color: var(--accent-amber);
-    }
-
-    @keyframes float-drift {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
-    }
-
-    @keyframes float-vector {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(8px); }
-    }
-
-    /* Hero Emblem Stage (Interactive Liquid Metal Shader) */
-    .hero-emblem-stage {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
-    }
-
-    .liquid-emblem-container {
-      width: 100%;
-      max-width: 440px;
-      aspect-ratio: 1 / 1;
-      position: relative;
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      background: radial-gradient(circle at center, rgba(232, 97, 26, 0.08) 0%, rgba(22, 22, 22, 0.6) 70%, rgba(13, 13, 13, 0.95) 100%);
+      padding: 120px 0 80px;
+      text-align: center;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
     }
 
-    .liquid-emblem-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      cursor: crosshair;
-    }
-
-    .emblem-hud-overlay {
+    /* Warm radial atmospheric glow (Growaz reference) */
+    .hero::before {
+      content: '';
       position: absolute;
-      top: 14px;
-      left: 14px;
-      right: 14px;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120%;
+      height: 80%;
+      background: radial-gradient(
+        ellipse 60% 50% at 50% 20%,
+        rgba(245, 166, 35, 0.08) 0%,
+        rgba(232, 97, 26, 0.04) 30%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-frame {
+      position: relative;
+      border: 1px dashed var(--bg-border);
+      padding: clamp(40px, 6vw, 100px) clamp(24px, 5vw, 80px);
+      max-width: 900px;
+      z-index: 2;
+    }
+
+    /* Dashed corner accents */
+    .hero-frame::before,
+    .hero-frame::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--accent-amber);
+      border-style: solid;
+    }
+
+    .hero-frame::before {
+      top: -1px; left: -1px;
+      border-width: 1px 0 0 1px;
+    }
+
+    .hero-frame::after {
+      bottom: -1px; right: -1px;
+      border-width: 0 1px 1px 0;
+    }
+
+    .hero h1 { position: relative; z-index: 2; margin-bottom: 24px; }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: clamp(0.8rem, 1.5vw, 1rem);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    /* Floating annotation pills — Growaz style with float animation */
+    .float-pill {
+      position: absolute;
+      z-index: 5;
+      animation: pill-float 3.5s ease-in-out infinite;
+    }
+
+    .fp-tl { top: -14px; left: 8%; animation-delay: 0s; }
+    .fp-tr { top: 12%; right: -8px; animation-delay: 0.8s; }
+    .fp-br { bottom: 18%; right: -24px; animation-delay: 1.6s; }
+
+    @keyframes pill-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    /* SVG Radar — CSS-only animation */
+    .radar-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 60px auto 0;
+      opacity: 0.45;
+      z-index: 2;
+    }
+
+    .radar-wrap svg { width: 100%; height: 100%; }
+
+    .radar-sweep {
+      transform-origin: 140px 140px;
+      animation: sweep 4s linear infinite;
+    }
+
+    @keyframes sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .radar-dot-pulse {
+      animation: dot-pulse 2.5s ease-in-out infinite;
+    }
+
+    .rd-1 { animation-delay: 0s; }
+    .rd-2 { animation-delay: 0.9s; }
+    .rd-3 { animation-delay: 1.8s; }
+
+    @keyframes dot-pulse {
+      0%, 100% { r: 3; opacity: 1; }
+      50% { r: 6; opacity: 0.3; }
+    }
+
+    /* ───────────────────────────────────────────────
+       3. ABOUT STRIP — pinned feel
+    ─────────────────────────────────────────────── */
+    .about-strip {
+      padding: clamp(60px, 10vw, 120px) 0;
+      text-align: center;
+      background: var(--bg-card);
+      border-top: 1px solid var(--bg-border);
+      border-bottom: 1px solid var(--bg-border);
+    }
+
+    .about-label {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      margin-bottom: 28px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .about-text {
+      max-width: 580px;
+      margin: 0 auto 36px;
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    /* ───────────────────────────────────────────────
+       4. COLLISION PROOF — 3 cards, clip-path entrance
+    ─────────────────────────────────────────────── */
+    .collision-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+    }
+
+    .section-header {
       display: flex;
       justify-content: space-between;
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      pointer-events: none;
-      letter-spacing: 0.08em;
-    }
-
-    .emblem-caption {
-      margin-top: 16px;
-      font-size: var(--type-meta);
-      color: var(--text-muted);
-      letter-spacing: 0.08em;
-      text-align: center;
-    }
-
-    /* ==========================================================================
-       SECTION 2: ABOUT STRIP — NARROW COLUMN RUNWAY
-       ========================================================================== */
-    .about-section {
-      padding: 120px 0;
-      position: relative;
-      border-top: 1px solid var(--bg-border);
-    }
-
-    .about-narrow {
-      max-width: 680px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .about-kicker {
-      font-size: var(--type-meta);
-      color: var(--accent-amber);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 24px;
-      display: block;
-    }
-
-    .about-body {
-      font-size: clamp(1.15rem, 2vw, 1.4rem);
-      line-height: 1.65;
-      color: var(--text-primary);
-      margin-bottom: 36px;
-      font-family: var(--font-mono);
-    }
-
-    .about-body strong {
-      color: var(--accent-fire);
-      font-weight: 600;
-    }
-
-    .metrics-ribbon {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-top: 48px;
-      text-align: left;
-    }
-
-    .metric-cell {
-      background-color: rgba(22, 22, 22, 0.6);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      padding: 18px 20px;
-    }
-
-    .metric-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--accent-fire);
-      font-family: var(--font-mono);
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .metric-label {
-      font-size: var(--type-meta);
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    /* ==========================================================================
-       SECTION 3: COLLISION PROOF CARDS — LIQUID GLASS WEBGEL REFRACTION
-       ========================================================================== */
-    .proof-section {
-      padding: 120px 0 140px;
-      border-top: 1px solid var(--bg-border);
-      position: relative;
-    }
-
-    .section-header-block {
+      align-items: flex-end;
       margin-bottom: 60px;
-    }
-
-    .section-kicker {
-      font-size: var(--type-meta);
-      color: var(--accent-amber);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      display: block;
-    }
-
-    .section-h2 {
-      font-size: var(--type-h2);
-      line-height: 1.1;
-      max-width: 860px;
     }
 
     .cards-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 28px;
+      gap: 20px;
     }
 
-    /* Liquid Glass Card: Real WebGL Refraction Canvas + Prismatic Dispersion */
-    .liquid-glass-card {
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 4px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
       position: relative;
-      border-radius: var(--radius-glass);
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      overflow: hidden;
-      background: rgba(22, 22, 22, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 34px 30px 30px;
-      cursor: pointer;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
-      clip-path: inset(100% 0 0 0); /* GSAP ScrollTrigger wipes in */
-      will-change: clip-path, transform;
+      clip-path: inset(100% 0 0 0);
+      transition: border-color 0.3s;
     }
 
-    .liquid-glass-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(232, 97, 26, 0.4);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(232, 97, 26, 0.05);
+    .card:hover {
+      border-color: var(--accent-fire);
     }
 
-    /* Underlay WebGL Canvas for Real Optical Refraction */
-    .liquid-glass-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-      border-radius: var(--radius-glass);
+    .card:hover .card-add {
+      background: var(--accent-fire);
+      color: var(--bg-void);
     }
 
-    .card-inner-content {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-    }
-
-    .card-top {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .card-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-number {
+    .card-num {
       font-family: var(--font-mono);
-      font-size: var(--type-meta);
-      color: var(--accent-amber);
-      letter-spacing: 0.12em;
-    }
-
-    .card-status-badge {
-      font-size: 0.65rem;
-      padding: 3px 8px;
-      border-radius: var(--radius-pill);
-      background-color: rgba(232, 97, 26, 0.15);
-      border: 1px solid var(--accent-fire);
-      color: var(--accent-fire);
-      letter-spacing: 0.05em;
-    }
-
-    .card-title {
-      font-family: var(--font-display);
-      font-size: var(--type-card-h);
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.01em;
-    }
-
-    .card-desc {
-      font-size: 0.88rem;
       color: var(--text-muted);
-      line-height: 1.65;
+      font-size: 0.875rem;
+      margin-bottom: 20px;
     }
 
-    .card-desc code {
-      color: var(--accent-fire);
-      background: rgba(232, 97, 26, 0.1);
-      padding: 2px 5px;
-      border-radius: 3px;
+    .card h3 {
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
     }
 
     .card-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 14px;
+      margin-bottom: 40px;
     }
 
-    .card-tag {
-      background-color: rgba(37, 37, 37, 0.8);
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.06em;
-      padding: 4px 10px;
-      border-radius: var(--radius-pill);
-      text-transform: uppercase;
-      border: 1px solid rgba(255, 255, 255, 0.04);
-    }
-
-    .card-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 28px;
-      padding-top: 18px;
-      border-top: 1px solid var(--bg-border);
-    }
-
-    .card-severity {
-      font-family: var(--font-mono);
-      font-size: var(--type-meta);
-      color: var(--accent-fire);
-      letter-spacing: 0.06em;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .card-action-btn {
-      width: 32px;
-      height: 32px;
+    .card-add {
+      margin-top: auto;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background-color: rgba(232, 97, 26, 0.15);
       border: 1px solid var(--accent-fire);
       color: var(--accent-fire);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .liquid-glass-card:hover .card-action-btn {
-      background-color: var(--accent-fire);
-      color: var(--bg-void);
-    }
-
-    /* ==========================================================================
-       SECTION 4: ACTIVE OPERATIONS DASHBOARD (Volumetric Radar Globe + HUD + Ledger)
-       ========================================================================== */
-    .ops-section {
-      padding: 120px 0 160px;
-      border-top: 1px solid var(--bg-border);
-      position: relative;
-    }
-
-    .ops-layout-grid {
       display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      gap: 40px;
-      align-items: start;
+      place-items: center;
+      font-size: 1.25rem;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    /* 3D Volumetric Radar Cockpit Shell */
-    .radar-cockpit-module {
-      position: relative;
-      background-color: rgba(22, 22, 22, 0.55);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-glass);
-      padding: 24px;
-      overflow: hidden;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+    .card-add:hover {
+      transform: scale(1.1) rotate(90deg);
     }
 
-    .cockpit-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      padding-bottom: 14px;
+    /* ───────────────────────────────────────────────
+       5. DEMO TERMINAL
+    ─────────────────────────────────────────────── */
+    .demo-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+      border-top: 1px solid var(--bg-border);
       border-bottom: 1px solid var(--bg-border);
-      position: relative;
-      z-index: 2;
     }
 
-    .cockpit-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      color: var(--text-primary);
-      text-transform: uppercase;
+    .demo-section h2 {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .terminal {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 4px;
+      max-width: 880px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
       display: flex;
       align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bg-border);
       gap: 8px;
     }
 
-    .cockpit-controls-row {
+    .terminal-dots {
       display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .cockpit-btn {
-      background-color: var(--bg-card);
-      border: 1px solid var(--bg-border);
-      color: var(--text-muted);
-      padding: 5px 12px;
-      border-radius: var(--radius-pill);
-      font-size: var(--type-meta);
-      font-family: var(--font-mono);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .cockpit-btn:hover, .cockpit-btn.active {
-      color: var(--text-primary);
-      border-color: var(--accent-amber);
-    }
-
-    /* 3D Volumetric Radar Globe Stage Container */
-    .radar-3d-stage {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      background: radial-gradient(circle at center, rgba(13, 13, 13, 0.3) 0%, rgba(13, 13, 13, 0.95) 100%);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-    }
-
-    .radar-3d-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      cursor: grab;
-    }
-
-    .radar-3d-canvas:active {
-      cursor: grabbing;
-    }
-
-    /* Radar Reticle Overlay HUD Elements */
-    .radar-reticle-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .radar-corner-tag {
-      position: absolute;
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      letter-spacing: 0.1em;
-      font-family: var(--font-mono);
-    }
-
-    .tag-tl { top: 12px; left: 12px; }
-    .tag-tr { top: 12px; right: 12px; }
-    .tag-bl { bottom: 12px; left: 12px; }
-    .tag-br { bottom: 12px; right: 12px; }
-
-    /* Interactive Status & Threat Switcher */
-    .radar-threat-bar {
-      margin-top: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(13, 13, 13, 0.85);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      padding: 12px 16px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .threat-status-display {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .threat-signal-light {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--accent-fire);
-      animation: alert-blink 0.8s ease-in-out infinite alternate;
-    }
-
-    @keyframes alert-blink {
-      from { opacity: 0.2; transform: scale(0.9); }
-      to { opacity: 1; transform: scale(1.1); }
-    }
-
-    .threat-signal-light.resolved {
-      background-color: var(--accent-amber);
-      animation: none;
-    }
-
-    .threat-label {
-      font-size: var(--type-meta);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--accent-fire);
-    }
-
-    .threat-label.resolved {
-      color: var(--accent-amber);
-    }
-
-    .threat-toggle-btn {
-      background-color: transparent;
-      border: 1px solid var(--accent-fire);
-      color: var(--accent-fire);
-      padding: 8px 16px;
-      border-radius: var(--radius-pill);
-      font-size: var(--type-meta);
-      font-family: var(--font-mono);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
       gap: 6px;
     }
 
-    .threat-toggle-btn:hover {
-      background-color: var(--accent-fire);
-      color: var(--bg-void);
+    .terminal-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid var(--bg-border);
     }
 
-    .threat-toggle-btn.resolved {
-      border-color: var(--accent-amber);
-      color: var(--accent-amber);
+    .terminal-dots span:nth-child(1) { background: #ff5f56; border-color: #e0443e; }
+    .terminal-dots span:nth-child(2) { background: #ffbd2e; border-color: #dea123; }
+    .terminal-dots span:nth-child(3) { background: #27c93f; border-color: #1aab29; }
+
+    .terminal-title {
+      margin: 0 auto;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
     }
 
-    .threat-toggle-btn.resolved:hover {
-      background-color: var(--accent-amber);
-      color: var(--bg-void);
+    .terminal-body {
+      padding: 24px;
+      overflow-x: auto;
     }
 
-    /* Live Telemetry & Terminal Stack */
-    .ops-telemetry-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+    .terminal pre {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: clamp(0.7rem, 1.2vw, 0.875rem);
+      line-height: 1.7;
+      color: var(--text-primary);
     }
 
-    /* Live Agent HUD Stations (Agent A, Agent B, Agent C) */
-    .agent-hud-cluster {
+    .tw { color: var(--accent-fire); }   /* warn */
+    .ta { color: var(--accent-amber); }  /* advisory */
+    .td { color: var(--text-muted); }    /* dim */
+
+    /* Glowing border pulse on terminal during COLLISION state */
+    .terminal-glow {
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { border-color: var(--bg-border); }
+      50% { border-color: var(--accent-fire); }
+    }
+
+    /* ───────────────────────────────────────────────
+       6. HOW IT WORKS — 3 Steps
+    ─────────────────────────────────────────────── */
+    .how-section {
+      padding: clamp(80px, 10vw, 120px) 0;
+    }
+
+    .how-section h2 {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .steps-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: 40px;
     }
 
-    .agent-station-card {
-      background-color: rgba(22, 22, 22, 0.65);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      padding: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(8px);
+    .step {
+      padding-left: 24px;
+      border-left: 1px solid var(--bg-border);
+      transition: border-color 0.3s;
     }
 
-    .agent-station-card:hover, .agent-station-card.active {
-      border-color: var(--accent-fire);
-      background-color: rgba(26, 26, 26, 0.85);
+    .step:hover { border-color: var(--accent-fire); }
+
+    .step-num {
+      display: block;
+      font-family: var(--font-mono);
+      color: var(--accent-amber);
+      font-size: 1.125rem;
+      margin-bottom: 16px;
     }
 
-    .agent-station-card.resolved-b {
-      border-color: var(--accent-amber);
-    }
+    .step h3 { margin-bottom: 12px; }
 
-    .station-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .agent-callsign {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: 0.08em;
-    }
-
-    .agent-status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .dot-fire { background-color: var(--accent-fire); }
-    .dot-amber { background-color: var(--accent-amber); }
-    .dot-dim { background-color: var(--text-muted); }
-
-    .station-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.68rem;
+    .step p {
+      color: var(--text-muted);
+      font-size: clamp(0.8rem, 1.2vw, 0.9rem);
       line-height: 1.6;
     }
 
-    .station-key { color: var(--text-muted); }
-    .station-val { color: var(--text-primary); font-weight: 500; }
-    .val-alert { color: var(--accent-fire); font-weight: 600; }
-    .val-amber { color: var(--accent-amber); font-weight: 600; }
-
-    /* Live Assumption Ledger & TCAS Advisory Terminal */
-    .terminal-panel {
-      position: relative;
-      background-color: rgba(22, 22, 22, 0.6);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-glass);
-      overflow: hidden;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .terminal-header {
-      padding: 12px 18px;
-      background-color: rgba(13, 13, 13, 0.85);
-      border-bottom: 1px solid var(--bg-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: var(--type-meta);
-      color: var(--text-muted);
-      position: relative;
-      z-index: 2;
-    }
-
-    .terminal-controls {
-      display: flex;
-      gap: 6px;
-    }
-
-    .term-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--bg-border);
-    }
-    .term-dot.fire { background-color: var(--accent-fire); }
-    .term-dot.amber { background-color: var(--accent-amber); }
-
-    /* Terminal Filter Tabs & Actions */
-    .terminal-filter-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 18px;
-      background-color: rgba(18, 18, 18, 0.9);
-      border-bottom: 1px solid var(--bg-border);
-      font-size: 0.7rem;
-      position: relative;
-      z-index: 2;
-    }
-
-    .filter-tabs {
-      display: flex;
-      gap: 12px;
-    }
-
-    .filter-tab {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.06em;
-      padding: 3px 0;
-      position: relative;
-    }
-
-    .filter-tab:hover, .filter-tab.active {
-      color: var(--text-primary);
-    }
-
-    .filter-tab.active::after {
-      content: "";
-      position: absolute;
-      bottom: -8px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background-color: var(--accent-fire);
-    }
-
-    .term-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .term-action-btn {
-      background: none;
-      border: 1px solid var(--bg-border);
-      color: var(--text-muted);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.65rem;
-      font-family: var(--font-mono);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .term-action-btn:hover {
-      border-color: var(--text-primary);
-      color: var(--text-primary);
-    }
-
-    /* Terminal Output Stream */
-    .terminal-body {
-      padding: 18px;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      line-height: 1.75;
-      color: var(--text-primary);
-      background-color: rgba(13, 13, 13, 0.95);
-      height: 340px;
-      overflow-y: auto;
-      position: relative;
-      z-index: 2;
-    }
-
-    .terminal-line {
-      display: flex;
-      gap: 12px;
-      padding: 3px 0;
-      border-bottom: 1px solid rgba(37, 37, 37, 0.3);
-      cursor: pointer;
-      transition: background-color 0.15s ease;
-    }
-
-    .terminal-line:hover {
-      background-color: rgba(255, 255, 255, 0.03);
-    }
-
-    .line-time {
-      color: var(--text-muted);
-      user-select: none;
-      flex-shrink: 0;
-    }
-
-    .line-tag-alert {
-      color: var(--accent-fire);
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-
-    .line-tag-advisory {
-      color: var(--accent-amber);
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-
-    .line-tag-miner {
-      color: #8c8c8c;
-      flex-shrink: 0;
-    }
-
-    .line-tag-brake {
-      color: #ff4d4f;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    /* AST Inspection Modal Drawer */
-    .ast-modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-      z-index: 200;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .ast-modal-backdrop.open {
-      display: flex;
-    }
-
-    .ast-modal-window {
-      background-color: var(--bg-card);
-      border: 1px solid var(--accent-fire);
-      border-radius: var(--radius-subtle);
-      max-width: 780px;
-      width: 100%;
-      overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
-    }
-
-    .ast-modal-header {
-      padding: 16px 24px;
-      background-color: rgba(13, 13, 13, 0.9);
-      border-bottom: 1px solid var(--bg-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .ast-modal-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--accent-fire);
-      letter-spacing: 0.08em;
-    }
-
-    .ast-close-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.4rem;
-      cursor: pointer;
-      line-height: 1;
-    }
-
-    .ast-close-btn:hover {
-      color: var(--text-primary);
-    }
-
-    .ast-modal-body {
-      padding: 24px;
-      font-size: 0.85rem;
-      line-height: 1.7;
-    }
-
-    .ast-diff-view {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 16px 0;
-    }
-
-    .diff-column {
-      background: var(--bg-void);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      padding: 14px;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-    }
-
-    .diff-title {
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-      display: block;
-      border-bottom: 1px solid var(--bg-border);
-      padding-bottom: 4px;
-    }
-
-    /* ==========================================================================
-       SECTION 5: SPECIFICATIONS & ENGINE SPECS
-       ========================================================================== */
-    .specs-section {
-      padding: 100px 0 120px;
+    /* ───────────────────────────────────────────────
+       7. FOOTER
+    ─────────────────────────────────────────────── */
+    footer {
+      padding: 40px 0;
       border-top: 1px solid var(--bg-border);
-      position: relative;
-    }
-
-    .specs-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-    }
-
-    .spec-card {
-      background: rgba(22, 22, 22, 0.5);
-      border: 1px solid var(--bg-border);
-      border-radius: var(--radius-subtle);
-      padding: 22px;
-    }
-
-    .spec-num {
-      font-size: 0.7rem;
-      color: var(--accent-amber);
-      letter-spacing: 0.1em;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .spec-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 10px;
-    }
-
-    .spec-desc {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* ==========================================================================
-       FOOTER
-       ========================================================================== */
-    .site-footer {
-      padding: 60px 0;
-      border-top: 1px solid var(--bg-border);
-      background-color: var(--bg-card);
-      position: relative;
-      z-index: 10;
+      background: var(--bg-card);
     }
 
     .footer-inner {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      font-size: var(--type-meta);
+      align-items: center;
       color: var(--text-muted);
+      font-size: 0.8125rem;
     }
 
-    /* Media Queries */
-    @media (max-width: 1024px) {
-      .hero-grid, .ops-layout-grid {
-        grid-template-columns: 1fr;
-        gap: 50px;
-      }
-      .cards-grid, .specs-grid {
-        grid-template-columns: 1fr;
-      }
-      .nav-telemetry {
-        display: none;
-      }
-      .metrics-ribbon {
-        grid-template-columns: 1fr;
+    /* ───────────────────────────────────────────────
+       RESPONSIVE
+    ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .steps-row { grid-template-columns: 1fr; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+      .hero-frame { border: none; padding: 40px 16px; }
+      .float-pill { position: static; margin: 6px; display: inline-flex; transform: none; animation: none; }
+      .footer-inner { flex-direction: column; gap: 12px; text-align: center; }
+    }
+
+    /* ───────────────────────────────────────────────
+       REDUCED MOTION
+    ─────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- MASTER THREE.JS CANVAS: 3D Shader Gradient Living Organic Mesh -->
-  <canvas id="gradient-canvas"></canvas>
-
-  <!-- Atmospheric Dot-Grid & Scanline Overlays -->
-  <div class="viewport-grid-overlay" aria-hidden="true"></div>
-  <div class="scanline-overlay" aria-hidden="true"></div>
-
-  <!-- FIXED TOP NAVIGATION -->
-  <header class="navbar" id="main-nav">
-    <div class="container nav-inner">
-      <a href="#" class="brand-mark" aria-label="CROSSFIRE Home">
-        <div class="nav-logo-box">
-          <canvas class="nav-logo-canvas" id="navLogoCanvas" width="64" height="64"></canvas>
-        </div>
-        <span class="brand-name brand-title">CROSSFIRE</span>
-      </a>
-
-      <ul class="nav-telemetry">
-        <li><a href="#hero" class="active"><span class="nav-dot"></span>// 01 COCKPIT</a></li>
-        <li><a href="#about"><span class="nav-dot"></span>// 02 MISSION</a></li>
-        <li><a href="#proof"><span class="nav-dot"></span>// 03 PROOF CARDS</a></li>
-        <li><a href="#operations"><span class="nav-dot"></span>// 04 OPS RADAR</a></li>
-        <li><a href="#specs"><span class="nav-dot"></span>// 05 SPECS</a></li>
-      </ul>
-
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <div class="nav-status-chip">
-          <span class="pulse-beacon"></span>
-          <span>TCAS TC-01 LIVE</span>
-        </div>
-        <a href="#operations" class="btn-pill btn-primary">
-          <span>RUN HARNESS</span>
-        </a>
+  <!-- ══════ 1. NAV ══════ -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">CROSSFIRE</div>
+      <div class="nav-links">
+        <a href="#">Home</a>
+        <a href="#about">About</a>
+        <a href="#how">How It Works</a>
+        <a href="#demo">Demo</a>
       </div>
+      <a href="dashboard.html" class="pill pill-fire magnetic">» Launch Console</a>
     </div>
-  </header>
+  </nav>
 
-  <!-- MAIN SCROLLABLE CONTENT (Clean Lenis Native Smooth Scroll) -->
-  <main>
+  <!-- ══════ 2. HERO ══════ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-frame">
+        <!-- Floating annotation pills — asymmetric, Growaz-style -->
+        <div class="pill pill-fire float-pill fp-tl">TCAS</div>
+        <div class="pill pill-outline float-pill fp-tr">Real-Time</div>
+        <div class="pill pill-outline float-pill fp-br">Zero False Positives</div>
 
-    <!-- SECTION 1: HERO SECTION -->
-    <section class="hero-section" id="hero">
-      <div class="container hero-grid">
-        
-        <!-- Left: Invariant Headline Frame & Mission Brief -->
-        <div class="hero-content">
-          <div class="floating-pill pill-drift">ASSUMPTION DRIFT [0.94]</div>
-          <div class="floating-pill pill-vector">TCAS ADVISORY: ACTIVE</div>
+        <h1>
+          Collision Avoidance<br>
+          for <em>Parallel Agents</em>
+        </h1>
 
-          <div class="hero-frame">
-            <div class="hero-kicker-row">
-              <span class="hero-kicker">TCAS FOR PARALLEL AI AGENTS</span>
-              <span class="kicker-divider">/</span>
-              <span style="font-size: var(--type-meta); color: var(--text-muted);">AST SEMANTIC AIR TRAFFIC</span>
-            </div>
-
-            <h1 class="hero-headline" id="hero-headline">
-              <span class="headline-italic">Detecting</span> Collisions<br>
-              Before They Compile.
-            </h1>
-
-            <p class="hero-lead">
-              Git reports zero conflicts. Compilers report clean pass. 
-              Then parallel subagents mutate shared assumptions and production silently explodes. 
-              CROSSFIRE intercepts incompatible value domains, state lifecycles, and error contracts in flight.
-            </p>
-
-            <div class="hero-cta-group">
-              <a href="#operations" class="btn-pill btn-primary">
-                <span>OPEN OPS RADAR [0.08s]</span>
-              </a>
-              <a href="#proof" class="btn-pill btn-secondary">
-                <span>INSPECT 3 CONFLICTS</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Interactive WebGL Liquid Metal Emblem (Reference: liquid-logo) -->
-        <div class="hero-emblem-stage">
-          <div class="liquid-emblem-container" id="emblemContainer">
-            <canvas class="liquid-emblem-canvas" id="heroEmblemCanvas" width="512" height="512"></canvas>
-            <div class="emblem-hud-overlay">
-              <span>TCAS-MK4 CORE</span>
-              <span>INTERACTIVE FLUID SHADER</span>
-            </div>
-          </div>
-          <p class="emblem-caption">// MOVE CURSOR OVER EMBLEM TO RIPPLE METALLIC GLSL SHADER</p>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 2: ABOUT STRIP (Narrow Runway Layout) -->
-    <section class="about-section" id="about">
-      <div class="container">
-        <div class="about-narrow">
-          <span class="about-kicker">// 02 MISSION OBJECTIVE</span>
-          <p class="about-body">
-            Modern coding agents operate at 10x human developer speed. 
-            When parallel subagents modify interconnected modules in isolated context scratchpads, 
-            <strong>syntactic git merges are blind to semantic breakage</strong>.
-            CROSSFIRE acts as the autonomous air traffic controller, inspecting abstract syntax invariants 
-            and auto-steering subagents before divergent assumptions ship to production.
-          </p>
-          <a href="#proof" class="btn-pill btn-secondary">
-            <span>EXAMINE 3 FAILING ARCHETYPES</span>
-          </a>
-
-          <!-- Telemetry Metrics Ribbon -->
-          <div class="metrics-ribbon">
-            <div class="metric-cell">
-              <span class="metric-value">&lt; 0.08s</span>
-              <span class="metric-label">AST Verification Latency</span>
-            </div>
-            <div class="metric-cell">
-              <span class="metric-value">0 Lines</span>
-              <span class="metric-label">Git Merge Conflicts Required</span>
-            </div>
-            <div class="metric-cell">
-              <span class="metric-value">100%</span>
-              <span class="metric-label">Deterministic PreToolUse Halt</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 3: COLLISION PROOF CARDS (Reference: Liquid Glass JS Refraction) -->
-    <section class="proof-section" id="proof">
-      <div class="container">
-        <div class="section-header-block">
-          <span class="section-kicker">// 03 UNGUARDED WOUNDS</span>
-          <h2 class="section-h2">
-            <span class="headline-italic">Three</span> Fatal Collisions Linters &amp; Compilers Never Catch.
-          </h2>
-        </div>
-
-        <div class="cards-grid">
-          
-          <!-- Card 01: Invariant Drift -->
-          <article class="liquid-glass-card" data-card="01">
-            <canvas class="liquid-glass-canvas"></canvas>
-            <div class="card-inner-content">
-              <div class="card-top">
-                <div class="card-header-row">
-                  <span class="card-number">01 / CONTRACT</span>
-                  <span class="card-status-badge">CRITICAL</span>
-                </div>
-                <h3 class="card-title">Invariant Drift</h3>
-                <p class="card-desc">
-                  Agent A refactors checkout to use normalized float scalars <code>[0.0 .. 1.0]</code>. 
-                  Agent B creates promo engine passing integer <code>15</code>. 
-                  Types match (numeric). Linter passes. Billed 1500% overcharge.
-                </p>
-                <div class="card-tags">
-                  <span class="card-tag">VALUE DOMAIN</span>
-                  <span class="card-tag">AST BOUNDARY</span>
-                  <span class="card-tag">SILENT 15X</span>
-                </div>
-              </div>
-              <div class="card-bottom">
-                <span class="card-severity">SEVERITY: 0.94 / CRITICAL</span>
-                <span class="card-action-btn">+</span>
-              </div>
-            </div>
-          </article>
-
-          <!-- Card 02: Lifecycle Desync -->
-          <article class="liquid-glass-card" data-card="02">
-            <canvas class="liquid-glass-canvas"></canvas>
-            <div class="card-inner-content">
-              <div class="card-top">
-                <div class="card-header-row">
-                  <span class="card-number">02 / TEMPORAL</span>
-                  <span class="card-status-badge" style="border-color: var(--accent-amber); color: var(--accent-amber);">HIGH</span>
-                </div>
-                <h3 class="card-title">Lifecycle Desync</h3>
-                <p class="card-desc">
-                  Agent A delegates session token invalidation to an asynchronous event bus. 
-                  Agent B assumes immediate synchronous record purge and drops foreign keys. 
-                  Race condition opens a 12-second zombie authentication window.
-                </p>
-                <div class="card-tags">
-                  <span class="card-tag">STATE LIFECYCLE</span>
-                  <span class="card-tag">ASYNC / SYNC</span>
-                  <span class="card-tag">AUTH ESCAPE</span>
-                </div>
-              </div>
-              <div class="card-bottom">
-                <span class="card-severity" style="color: var(--accent-amber);">SEVERITY: 0.88 / HIGH</span>
-                <span class="card-action-btn">+</span>
-              </div>
-            </div>
-          </article>
-
-          <!-- Card 03: Contract Divergence -->
-          <article class="liquid-glass-card" data-card="03">
-            <canvas class="liquid-glass-canvas"></canvas>
-            <div class="card-inner-content">
-              <div class="card-top">
-                <div class="card-header-row">
-                  <span class="card-number">03 / EXCEPTION</span>
-                  <span class="card-status-badge">CRITICAL</span>
-                </div>
-                <h3 class="card-title">Contract Divergence</h3>
-                <p class="card-desc">
-                  Agent A replaces <code>raise ItemNotFoundError</code> with <code>return None</code>. 
-                  Agent B's inventory recovery wraps call in <code>try/except</code>. 
-                  Error never triggers; replenishment logic is permanently silenced.
-                </p>
-                <div class="card-tags">
-                  <span class="card-tag">ERROR CONTRACT</span>
-                  <span class="card-tag">CONTROL FLOW</span>
-                  <span class="card-tag">SILENT VOID</span>
-                </div>
-              </div>
-              <div class="card-bottom">
-                <span class="card-severity">SEVERITY: 0.91 / CRITICAL</span>
-                <span class="card-action-btn">+</span>
-              </div>
-            </div>
-          </article>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 4: ACTIVE OPERATIONS DASHBOARD (Volumetric Radar Globe + HUD + Ledger) -->
-    <section class="ops-section" id="operations">
-      <div class="container">
-        <div class="section-header-block">
-          <span class="section-kicker">// 04 ACTIVE OPERATIONS DASHBOARD</span>
-          <h2 class="section-h2">
-            3D Volumetric Airspace Radar &amp; Deterministic Assumption Ledger.
-          </h2>
-        </div>
-
-        <div class="ops-layout-grid">
-          
-          <!-- Column 1: 3D Volumetric Radar Cockpit -->
-          <div class="radar-cockpit-module">
-            <canvas class="liquid-glass-canvas"></canvas>
-            <div class="cockpit-header">
-              <div class="cockpit-title">
-                <span class="threat-signal-light" id="cockpitHeaderDot"></span>
-                <span>VOLUMETRIC RADAR GLOBE</span>
-              </div>
-              <div class="cockpit-controls-row">
-                <button type="button" class="cockpit-btn active" id="btnSliceAll">FL ALL</button>
-                <button type="button" class="cockpit-btn" id="btnSliceUpper">FL360</button>
-                <button type="button" class="cockpit-btn" id="btnSliceLower">FL300</button>
-                <button type="button" class="cockpit-btn" id="btnResetRadar">RESET VIEW</button>
-              </div>
-            </div>
-
-            <!-- 3D Interactive Radar Stage -->
-            <div class="radar-3d-stage" id="radar3dStage">
-              <canvas class="radar-3d-canvas" id="radarCockpitCanvas"></canvas>
-              <div class="radar-reticle-overlay">
-                <span class="radar-corner-tag tag-tl">AIRSPACE: SEC-04</span>
-                <span class="radar-corner-tag tag-tr">RADAR: 3D VOLUMETRIC</span>
-                <span class="radar-corner-tag tag-bl">RANGE: 150 NM</span>
-                <span class="radar-corner-tag tag-br">SWEEP: 360° CONT</span>
-              </div>
-            </div>
-
-            <!-- Interactive Threat Status & Auto-Steer Switcher -->
-            <div class="radar-threat-bar">
-              <div class="threat-status-display">
-                <span class="threat-signal-light" id="threatLight"></span>
-                <span class="threat-label" id="threatLabel">TCAS ALERT: COLLISION DETECTED</span>
-              </div>
-              <button type="button" class="threat-toggle-btn" id="toggleThreatBtn">
-                <span>APPLY ADVISORY</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Column 2: Live Agent HUD Telemetry + Assumption Ledger -->
-          <div class="ops-telemetry-stack">
-            
-            <!-- Agent Telemetry Stations (Agent A, Agent B, Agent C) -->
-            <div class="agent-hud-cluster">
-              
-              <!-- Agent A -->
-              <div class="agent-station-card active" id="agentCardA" data-agent="A">
-                <div class="station-header">
-                  <span class="agent-callsign">AGENT A</span>
-                  <span class="agent-status-dot dot-fire"></span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ROLE:</span>
-                  <span class="station-val">CHECKOUT</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ALT:</span>
-                  <span class="station-val">FL360</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">DOMAIN:</span>
-                  <span class="station-val val-alert">float[0..1]</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">STATE:</span>
-                  <span class="station-val">MUTATING</span>
-                </div>
-              </div>
-
-              <!-- Agent B -->
-              <div class="agent-station-card" id="agentCardB" data-agent="B">
-                <div class="station-header">
-                  <span class="agent-callsign">AGENT B</span>
-                  <span class="agent-status-dot dot-fire" id="agentBDot"></span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ROLE:</span>
-                  <span class="station-val">PROMO</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ALT:</span>
-                  <span class="station-val" id="agentBAlt">FL360</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">DOMAIN:</span>
-                  <span class="station-val val-alert" id="agentBDomain">int[0..100]</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">STATE:</span>
-                  <span class="station-val val-alert" id="agentBState">COLLIDING</span>
-                </div>
-              </div>
-
-              <!-- Agent C -->
-              <div class="agent-station-card" id="agentCardC" data-agent="C">
-                <div class="station-header">
-                  <span class="agent-callsign">AGENT C</span>
-                  <span class="agent-status-dot dot-amber"></span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ROLE:</span>
-                  <span class="station-val">AUTH SYNC</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">ALT:</span>
-                  <span class="station-val">FL300</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">DOMAIN:</span>
-                  <span class="station-val">async_ev</span>
-                </div>
-                <div class="station-row">
-                  <span class="station-key">STATE:</span>
-                  <span class="station-val val-amber">NOMINAL</span>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Terminal Assumption Ledger -->
-            <div class="terminal-panel">
-              <canvas class="liquid-glass-canvas"></canvas>
-              <div class="terminal-header">
-                <div class="terminal-controls">
-                  <span class="term-dot fire"></span>
-                  <span class="term-dot amber"></span>
-                  <span class="term-dot"></span>
-                </div>
-                <span>CROSSFIRE TCAS DAEMON v1.2 — PORT :8765</span>
-                <span id="astThroughput">AST MINER: 14.8k nodes/s</span>
-              </div>
-
-              <!-- Filter Tabs & Actions -->
-              <div class="terminal-filter-bar">
-                <div class="filter-tabs">
-                  <button type="button" class="filter-tab active" data-filter="ALL">ALL FEED</button>
-                  <button type="button" class="filter-tab" data-filter="ALERTS">ALERTS (1)</button>
-                  <button type="button" class="filter-tab" data-filter="ADVISORIES">ADVISORIES (1)</button>
-                  <button type="button" class="filter-tab" data-filter="AST">AST CLAIMS</button>
-                </div>
-                <div class="term-actions">
-                  <button type="button" class="term-action-btn" id="btnExportJson">JSON</button>
-                  <button type="button" class="term-action-btn" id="btnClearTerm">CLEAR</button>
-                </div>
-              </div>
-
-              <!-- Live Stream Body -->
-              <div class="terminal-body" id="termOutput">
-                <div class="terminal-line" data-type="AST">
-                  <span class="line-time">[09:45:01.012]</span>
-                  <span class="line-tag-miner">MINER:</span>
-                  <span>CrossfireASTVisitor attached to subagent scratchpads</span>
-                </div>
-                <div class="terminal-line" data-type="AST">
-                  <span class="line-time">[09:45:01.028]</span>
-                  <span class="line-tag-miner">CLAIM:</span>
-                  <span>Agent A emitted InvariantClaim(symbol='discount', domain='float[0.0, 1.0]')</span>
-                </div>
-                <div class="terminal-line" data-type="AST">
-                  <span class="line-time">[09:45:01.042]</span>
-                  <span class="line-tag-miner">CLAIM:</span>
-                  <span>Agent B emitted InvariantClaim(symbol='discount', domain='int[0, 100]')</span>
-                </div>
-                <div class="terminal-line" data-type="ALERTS">
-                  <span class="line-time">[09:45:01.056]</span>
-                  <span class="line-tag-alert">ALERT:</span>
-                  <span>CollisionVector detected [invariant_drift] severity=0.94 target=discount</span>
-                </div>
-                <div class="terminal-line" data-type="ALERTS">
-                  <span class="line-time">[09:45:01.064]</span>
-                  <span class="line-tag-brake">BRAKE:</span>
-                  <span>Bob 2.0 PreToolUse hook fired: EXIT CODE 2 (EXECUTION HALTED)</span>
-                </div>
-                <div class="terminal-line" data-type="ADVISORIES">
-                  <span class="line-time">[09:45:01.078]</span>
-                  <span class="line-tag-advisory">ADVISORY:</span>
-                  <span>ResolutionAdvisory injected into Agent B queue: Patch discount=0.15f</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 5: ARCHITECTURAL SPECIFICATIONS -->
-    <section class="specs-section" id="specs">
-      <div class="container">
-        <div class="section-header-block">
-          <span class="section-kicker">// 05 SPECIFICATIONS &amp; HOOK INTEGRATION</span>
-          <h2 class="section-h2">
-            Deterministic Protection at Every Architectural Layer.
-          </h2>
-        </div>
-
-        <div class="specs-grid">
-          <div class="spec-card">
-            <span class="spec-num">SPEC 01 // HOOK</span>
-            <h3 class="spec-title">PreToolUse Interceptor</h3>
-            <p class="spec-desc">
-              Executes in <code style="color: var(--accent-fire);">&lt; 0.08s</code>. Before any agent tool executes a destructive commit, CROSSFIRE cross-mines AST invariants across all branch contexts.
-            </p>
-          </div>
-          <div class="spec-card">
-            <span class="spec-num">SPEC 02 // PARSER</span>
-            <h3 class="spec-title">AST Invariant Miner</h3>
-            <p class="spec-desc">
-              Extracts value domains, nullability contracts, and lifecycle invariants directly from Python AST syntax nodes without requiring test runs.
-            </p>
-          </div>
-          <div class="spec-card">
-            <span class="spec-num">SPEC 03 // VECTOR</span>
-            <h3 class="spec-title">Collision Vector Calculus</h3>
-            <p class="spec-desc">
-              Computes geometric overlap of symbol domains. Flags severe divergence as high-priority TCAS alarms with machine-readable remediation hints.
-            </p>
-          </div>
-          <div class="spec-card">
-            <span class="spec-num">SPEC 04 // STEER</span>
-            <h3 class="spec-title">Autonomous Resolution</h3>
-            <p class="spec-desc">
-              Generates targeted AST patches. Automatically rewrites colliding subagent prompts and code proposals to preserve system invariants.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- AST INSPECTION MODAL DRAWER -->
-  <div class="ast-modal-backdrop" id="astModal">
-    <div class="ast-modal-window">
-      <div class="ast-modal-header">
-        <span class="ast-modal-title" id="modalTitle">AST COLLISION INSPECTION // VECTOR: INVARIANT DRIFT</span>
-        <button type="button" class="ast-close-btn" id="modalCloseBtn">&times;</button>
-      </div>
-      <div class="ast-modal-body">
-        <p style="color: var(--text-muted); margin-bottom: 12px;">
-          CROSSFIRE detected an incompatible symbol contract between Agent A and Agent B on symbol <code style="color: var(--accent-fire);">discount</code>.
+        <p class="hero-subtitle">
+          Intercept incompatible assumptions between co-running AI subagents
+          before they crash production. TCAS-grade collision detection
+          for the agentic era.
         </p>
-        <div class="ast-diff-view">
-          <div class="diff-column">
-            <span class="diff-title">AGENT A // CHECKOUT OPTIMIZER</span>
-            <pre style="color: var(--accent-fire);"><code id="modalCodeA"># checkout.py (Line 42)
-def apply_discount(
-    total: float, 
-    discount: float  # [0.0 .. 1.0]
-) -> float:
-    return total * (1.0 - discount)</code></pre>
-          </div>
-          <div class="diff-column">
-            <span class="diff-title">AGENT B // PROMO ENGINE</span>
-            <pre style="color: var(--accent-amber);"><code id="modalCodeB"># promo.py (Line 18)
-# EXPECTS INTEGER PERCENT [0..100]
-discount = 15  
-final_price = apply_discount(
-    100.0, 
-    discount
-)  # SILENT 1500% OVERCHARGE!</code></pre>
-          </div>
+
+        <a href="#demo" class="pill pill-fire magnetic">» Get Started</a>
+      </div>
+
+      <!-- SVG Radar — proper SVG, not divs -->
+      <div class="radar-wrap">
+        <svg viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- concentric rings -->
+          <circle cx="140" cy="140" r="40" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <circle cx="140" cy="140" r="80" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <circle cx="140" cy="140" r="120" stroke="var(--bg-border)" stroke-width="0.5"/>
+          <!-- crosshair -->
+          <line x1="140" y1="20" x2="140" y2="260" stroke="var(--bg-border)" stroke-width="0.3"/>
+          <line x1="20" y1="140" x2="260" y2="140" stroke="var(--bg-border)" stroke-width="0.3"/>
+          <!-- sweep line -->
+          <line class="radar-sweep" x1="140" y1="140" x2="140" y2="20"
+                stroke="var(--accent-fire)" stroke-width="1.5" opacity="0.6"/>
+          <!-- threat dots -->
+          <circle class="radar-dot-pulse rd-1" cx="100" cy="80" r="3" fill="var(--accent-fire)"/>
+          <circle class="radar-dot-pulse rd-2" cx="200" cy="180" r="3" fill="var(--accent-amber)"/>
+          <circle class="radar-dot-pulse rd-3" cx="170" cy="100" r="3" fill="var(--accent-fire)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 3. ABOUT STRIP ══════ -->
+  <section id="about" class="about-strip">
+    <div class="container">
+      <span class="about-label">About CROSSFIRE</span>
+      <p class="about-text">
+        CROSSFIRE is not just another monitoring tool. It's a TCAS-grade
+        collision avoidance system purpose-built for the era of parallel AI agents.
+        When Agent A assumes <code>discount</code> is <code>float[0.0, 1.0]</code>
+        and Agent B assumes <code>int[0, 100]</code>, CROSSFIRE detects the
+        invariant drift before it reaches production — and issues a
+        Resolution Advisory to correct it.
+      </p>
+      <a href="#" class="pill pill-fire magnetic">» About Us</a>
+    </div>
+  </section>
+
+  <!-- ══════ 4. COLLISION PROOF ══════ -->
+  <section class="collision-section container">
+    <div class="section-header">
+      <h2>Collisions that<br><em>we intercept</em></h2>
+      <a href="dashboard.html" class="pill pill-fire magnetic">» View All</a>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card" data-card>
+        <div class="card-num">01</div>
+        <h3>Invariant Drift</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Value Domain</span>
+          <span class="pill pill-ghost">Float vs Int</span>
+          <span class="pill pill-ghost">Boundary Mismatch</span>
+          <span class="pill pill-ghost">Severity 0.95</span>
         </div>
-        <div style="background: rgba(232, 97, 26, 0.1); border: 1px solid var(--accent-fire); padding: 12px; border-radius: 4px; font-size: 0.8rem;">
-          <strong style="color: var(--accent-fire);">TCAS RESOLUTION ADVISORY:</strong>
-          <span style="color: var(--text-primary); margin-left: 6px;" id="modalAdvisory">
-            Inject patch into Agent B queue: Replace literal <code style="color: var(--accent-fire);">15</code> with float normalized scalar <code style="color: var(--accent-fire);">0.15f</code>.
-          </span>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+
+      <div class="card" data-card>
+        <div class="card-num">02</div>
+        <h3>Lifecycle Desync</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Async vs Sync</span>
+          <span class="pill pill-ghost">State Machine</span>
+          <span class="pill pill-ghost">Race Condition</span>
+          <span class="pill pill-ghost">Severity 0.85</span>
+        </div>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+
+      <div class="card" data-card>
+        <div class="card-num">03</div>
+        <h3>Contract Divergence</h3>
+        <div class="card-tags">
+          <span class="pill pill-ghost">Error Handling</span>
+          <span class="pill pill-ghost">None vs Exception</span>
+          <span class="pill pill-ghost">API Contract</span>
+          <span class="pill pill-ghost">Severity 0.90</span>
+        </div>
+        <button class="card-add" aria-label="Explore">+</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 5. DEMO TERMINAL ══════ -->
+  <section id="demo" class="demo-section">
+    <div class="container">
+      <h2>See it <em>in action</em></h2>
+
+      <div class="terminal terminal-glow">
+        <div class="terminal-bar">
+          <div class="terminal-dots"><span></span><span></span><span></span></div>
+          <div class="terminal-title">crossfire verify</div>
+        </div>
+        <div class="terminal-body">
+<pre>
+<span class="td">$ crossfire verify --path tests/fixtures/</span>
+
+┌─────────────────┬────────────────────┬──────────┬─────────┐
+│ Symbol          │ Collision Class    │ Severity │ Halted  │
+├─────────────────┼────────────────────┼──────────┼─────────┤
+│ discount        │ INVARIANT_DRIFT    │ 0.95     │ ✓       │
+│ evict_session   │ LIFECYCLE_DESYNC   │ 0.85     │ ✓       │
+│ get_item        │ CONTRACT_DIVERGENCE│ 0.90     │ ✓       │
+└─────────────────┴────────────────────┴──────────┴─────────┘
+
+<span class="tw">⚠  3 collision(s) detected — HALTING agent execution.</span>
+
+Resolution Advisory:
+<span class="ta">▸</span> discount: Normalize Agent B to float[0.0, 1.0] domain
+<span class="ta">▸</span> evict_session: Align Agent B to async lifecycle
+<span class="ta">▸</span> get_item: Update Agent A to raise ItemNotFoundError
+</pre>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- MINIMAL AVIATION FOOTER -->
-  <footer class="site-footer">
+  <!-- ══════ 6. HOW IT WORKS ══════ -->
+  <section id="how" class="how-section container">
+    <h2>How CROSSFIRE <em>works</em></h2>
+    <div class="steps-row">
+      <div class="step">
+        <span class="step-num">01</span>
+        <h3>Mine</h3>
+        <p>AST-level extraction of invariant claims from agent scratchpads using Python's ast.NodeVisitor.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <h3>Detect</h3>
+        <p>Cross-agent collision detection across 3 collision classes — invariant drift, lifecycle desync, contract divergence.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <h3>Resolve</h3>
+        <p>TCAS-grade Resolution Advisories with imperative patch hints and target agent identification.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 7. FOOTER ══════ -->
+  <footer>
     <div class="container footer-inner">
-      <div>
-        <strong style="color: var(--text-primary); letter-spacing: 0.12em;">CROSSFIRE</strong>
-        <span style="margin: 0 8px; color: var(--bg-border);">/</span>
-        <span>AIR TRAFFIC COLLISION AVOIDANCE SYSTEM</span>
-      </div>
-      <div>
-        <span>BUILT FOR IBM BOB 2.0 HACKATHON 2026 &middot; DUAL-CYLINDER ENGINE &middot; ZERO RUNTIME DEPENDENCIES</span>
-      </div>
+      <div class="nav-brand">CROSSFIRE</div>
+      <div>Built for the IBM Bob 2.0 Hackathon</div>
+      <div>&copy; 2026 Mrsage</div>
     </div>
   </footer>
 
-  <!-- ==========================================================================
-       SCRIPT ENGINE: THREE.JS + GSAP + SCROLLTRIGGER + LENIS
-       ========================================================================== -->
-  <!-- Three.js r128 CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- GSAP & ScrollTrigger CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <!-- Lenis CDN -->
+  <!-- ════════════════════════════════════════════════
+       SCRIPTS — CDN loaded, no npm
+  ════════════════════════════════════════════════ -->
+
+  <!-- Lenis smooth scroll -->
   <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
   <script>
-    /* ==========================================================================
-       CROSSFIRE UNIFIED WEBGL & CREATIVE ENGINE
-       FOCUSED 100% ON:
-       1. Liquid Logo (Molten metal GLSL WebGL shader for the CROSSFIRE emblem)
-       2. Shader Gradient (3D organic mesh/waterPlane in obsidian with fire-orange embers)
-       3. Liquid Glass JS (Real WebGL edge refraction on cards, HUD panels, and console)
-       4. Three.js 3D Volumetric Radar Globe (Interactive 3D hemisphere with flight vectors & hazard cone)
-       (Scroll World camera flight omitted; clean native Lenis smooth scrolling preserved)
-       ========================================================================== */
+    /* ── Respect reduced motion ── */
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    (function() {
-      "use strict";
-
-      // ------------------------------------------------------------------------
-      // 1. Lenis Clean Smooth Scrolling Engine
-      // ------------------------------------------------------------------------
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      let lenis = null;
-
-      if (!prefersReducedMotion && typeof Lenis !== "undefined") {
-        lenis = new Lenis({
-          duration: 1.1,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: true,
-          touchMultiplier: 1.3
-        });
-
-        if (typeof ScrollTrigger !== "undefined") {
-          lenis.on("scroll", ScrollTrigger.update);
-          gsap.ticker.add((time) => {
-            lenis.raf(time * 1000);
-          });
-          gsap.ticker.lagSmoothing(0);
-        } else {
-          function raf(time) {
-            lenis.raf(time);
-            requestAnimationFrame(raf);
-          }
-          requestAnimationFrame(raf);
-        }
+    /* ── Lenis ── */
+    if (!prefersReduced) {
+      const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
+      function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
       }
+      requestAnimationFrame(raf);
+      // Sync GSAP ScrollTrigger with Lenis
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+    }
 
-      // Navbar scroll styling
-      const navEl = document.getElementById("main-nav");
-      window.addEventListener("scroll", () => {
-        if (window.scrollY > 40) {
-          navEl.classList.add("scrolled");
-        } else {
-          navEl.classList.remove("scrolled");
-        }
-      }, { passive: true });
+    /* ── GSAP ScrollTrigger ── */
+    gsap.registerPlugin(ScrollTrigger);
 
-      // ------------------------------------------------------------------------
-      // 2. LIQUID LOGO: WebGL GLSL Liquid Metal Shader Engine
-      // (Reference: collidingScopes/liquid-logo)
-      // ------------------------------------------------------------------------
-      function initLiquidLogo(canvasId, isHero) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-
-        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-        if (!gl) return;
-
-        // Vertex Shader
-        const vsSource = `
-          attribute vec2 a_pos;
-          varying vec2 v_uv;
-          void main() {
-            v_uv = a_pos * 0.5 + 0.5;
-            gl_Position = vec4(a_pos, 0.0, 1.0);
+    if (!prefersReduced) {
+      /* Card clip-path wipe entrances — staggered, scrubbed */
+      gsap.utils.toArray('[data-card]').forEach((card, i) => {
+        gsap.to(card, {
+          clipPath: 'inset(0% 0 0 0)',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: card,
+            start: 'top 90%',
+            end: 'top 50%',
+            scrub: 1.5,
           }
-        `;
-
-        // Fragment Shader: Molten Liquid Metal SDF with dynamic ripples & specular sheen
-        const fsSource = `
-          precision highp float;
-          varying vec2 v_uv;
-          uniform vec2 u_res;
-          uniform vec2 u_mouse;
-          uniform float u_mouseVel;
-          uniform float u_time;
-          uniform float u_isHero;
-
-          float sdCircle(vec2 p, float r) {
-            return length(p) - r;
-          }
-
-          float sdBox(vec2 p, vec2 b) {
-            vec2 d = abs(p) - b;
-            return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-          }
-
-          float getCrossfireSDF(vec2 p) {
-            float core = sdCircle(p, 0.12);
-            float ring1 = abs(sdCircle(p, 0.38)) - 0.024;
-            float ring2 = abs(sdCircle(p, 0.62)) - 0.028;
-            
-            float crossH = max(sdBox(p, vec2(0.82, 0.022)), -sdCircle(p, 0.22));
-            float crossV = max(sdBox(p, vec2(0.022, 0.82)), -sdCircle(p, 0.22));
-
-            mat2 rot45 = mat2(0.7071, -0.7071, 0.7071, 0.7071);
-            vec2 pRot = rot45 * p;
-            float chevron = max(sdBox(pRot, vec2(0.52, 0.016)), -sdCircle(p, 0.28));
-
-            return min(min(min(ring1, ring2), core), min(min(crossH, crossV), chevron));
-          }
-
-          float sampleHeight(vec2 uv) {
-            vec2 p = (uv - 0.5) * 2.0;
-            p.x *= u_res.x / u_res.y;
-
-            float d = getCrossfireSDF(p);
-            float h = clamp(1.0 - smoothstep(-0.02, 0.03, d), 0.0, 1.0);
-
-            vec2 toMouse = uv - u_mouse;
-            float mDist = length(toMouse);
-            float ripple = sin(mDist * 28.0 - u_time * 6.0) * exp(-mDist * 4.0) * (0.2 + u_mouseVel * 0.8);
-            float flow = sin(p.x * 6.0 + u_time * 2.0) * cos(p.y * 6.0 + u_time * 1.8) * 0.12;
-
-            return h * (1.0 + ripple + flow);
-          }
-
-          void main() {
-            vec2 uv = v_uv;
-            float eps = 1.5 / u_res.x;
-
-            float hC = sampleHeight(uv);
-            float hL = sampleHeight(uv - vec2(eps, 0.0));
-            float hR = sampleHeight(uv + vec2(eps, 0.0));
-            float hD = sampleHeight(uv - vec2(0.0, eps));
-            float hU = sampleHeight(uv + vec2(0.0, eps));
-
-            vec3 normal = normalize(vec3((hL - hR) * 8.0, (hD - hU) * 8.0, 1.0));
-            vec3 viewDir = vec3(0.0, 0.0, 1.0);
-
-            vec3 light1 = normalize(vec3(0.6, 0.7, 0.8));
-            vec3 light2 = normalize(vec3(-0.7, -0.5, 0.6));
-
-            vec3 refl1 = reflect(-light1, normal);
-            vec3 refl2 = reflect(-light2, normal);
-
-            float spec1 = pow(max(dot(refl1, viewDir), 0.0), 32.0);
-            float spec2 = pow(max(dot(refl2, viewDir), 0.0), 16.0);
-            float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
-
-            vec3 colVoid = vec3(0.05, 0.05, 0.05);
-            vec3 colFire = vec3(0.91, 0.38, 0.10);  // #E8611A
-            vec3 colAmber = vec3(0.96, 0.65, 0.14); // #F5A623
-            vec3 colChrome = vec3(0.94, 0.93, 0.91); // #F0EDE8
-
-            vec3 metalCol = mix(colVoid, colFire, hC * 0.75);
-            metalCol += spec1 * colFire * 1.4;
-            metalCol += spec2 * colAmber * 0.9;
-            metalCol += fresnel * colChrome * 0.6;
-
-            float grain = (fract(sin(dot(gl_FragCoord.xy + u_time * 5.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.04;
-            metalCol += grain;
-
-            gl_FragColor = vec4(metalCol, hC > 0.01 ? 1.0 : (u_isHero > 0.5 ? 0.0 : 0.0));
-          }
-        `;
-
-        function createShader(gl, type, source) {
-          const s = gl.createShader(type);
-          gl.shaderSource(s, source);
-          gl.compileShader(s);
-          return s;
-        }
-
-        const prog = gl.createProgram();
-        gl.attachShader(prog, createShader(gl, gl.VERTEX_SHADER, vsSource));
-        gl.attachShader(prog, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
-        gl.linkProgram(prog);
-
-        const posBuf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-          -1, -1,  1, -1, -1,  1,
-          -1,  1,  1, -1,  1,  1
-        ]), gl.STATIC_DRAW);
-
-        const aPos = gl.getAttribLocation(prog, "a_pos");
-        const uRes = gl.getUniformLocation(prog, "u_res");
-        const uMouse = gl.getUniformLocation(prog, "u_mouse");
-        const uMouseVel = gl.getUniformLocation(prog, "u_mouseVel");
-        const uTime = gl.getUniformLocation(prog, "u_time");
-        const uIsHero = gl.getUniformLocation(prog, "u_isHero");
-
-        let mouseX = 0.5, mouseY = 0.5;
-        let targetMX = 0.5, targetMY = 0.5;
-        let mouseVel = 0;
-        let lastTime = 0;
-
-        function updateMouse(e) {
-          const rect = canvas.getBoundingClientRect();
-          const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-          const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-          targetMX = (clientX - rect.left) / rect.width;
-          targetMY = 1.0 - ((clientY - rect.top) / rect.height);
-          mouseVel = 1.2;
-        }
-
-        canvas.addEventListener("mousemove", updateMouse);
-        canvas.addEventListener("touchmove", updateMouse, { passive: true });
-        window.addEventListener("mousemove", (e) => {
-          if (isHero) {
-            const rect = canvas.getBoundingClientRect();
-            if (e.clientX >= rect.left - 100 && e.clientX <= rect.right + 100 &&
-                e.clientY >= rect.top - 100 && e.clientY <= rect.bottom + 100) {
-              updateMouse(e);
-            }
-          }
-        });
-
-        function render(time) {
-          const t = time * 0.001;
-          lastTime = t;
-
-          mouseX += (targetMX - mouseX) * 0.1;
-          mouseY += (targetMY - mouseY) * 0.1;
-          mouseVel *= 0.94;
-
-          gl.viewport(0, 0, canvas.width, canvas.height);
-          gl.useProgram(prog);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-          gl.enableVertexAttribArray(aPos);
-          gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-          gl.uniform2f(uRes, canvas.width, canvas.height);
-          gl.uniform2f(uMouse, mouseX, mouseY);
-          gl.uniform1f(uMouseVel, mouseVel);
-          gl.uniform1f(uTime, t);
-          gl.uniform1f(uIsHero, isHero ? 1.0 : 0.0);
-
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-          requestAnimationFrame(render);
-        }
-        requestAnimationFrame(render);
-      }
-
-      initLiquidLogo("navLogoCanvas", false);
-      initLiquidLogo("heroEmblemCanvas", true);
-
-      // ------------------------------------------------------------------------
-      // 3. SHADER GRADIENT BACKGROUND: 3D Organic Mesh/WaterPlane in Obsidian & Fire Embers
-      // (Reference: ruucm/shadergradient)
-      // ------------------------------------------------------------------------
-      const bgCanvas = document.getElementById("gradient-canvas");
-      let bgRenderer, bgScene, bgCamera, bgMesh;
-      let bgMouseX = 0, bgMouseY = 0;
-
-      function initShaderGradient() {
-        if (!bgCanvas || typeof THREE === "undefined") return;
-
-        bgRenderer = new THREE.WebGLRenderer({
-          canvas: bgCanvas,
-          antialias: true,
-          alpha: true,
-          powerPreference: "high-performance"
-        });
-        bgRenderer.setSize(window.innerWidth, window.innerHeight);
-        bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        bgScene = new THREE.Scene();
-        bgCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        bgCamera.position.set(0, 0, 22);
-
-        // 3D Organic undulating mesh plane
-        const planeGeo = new THREE.PlaneGeometry(38, 38, 96, 96);
-        const bgUniforms = {
-          u_time: { value: 0 },
-          u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
-          u_colorVoid: { value: new THREE.Color(0x0D0D0D) },
-          u_colorCharcoal: { value: new THREE.Color(0x161616) },
-          u_colorFire: { value: new THREE.Color(0xE8611A) },
-          u_colorAmber: { value: new THREE.Color(0xF5A623) }
-        };
-
-        const bgMat = new THREE.ShaderMaterial({
-          uniforms: bgUniforms,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.95,
-          vertexShader: `
-            uniform float u_time;
-            uniform vec2 u_mouse;
-            varying vec2 v_uv;
-            varying float v_elevation;
-
-            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-            vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-            vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-
-            float snoise(vec2 v) {
-              const vec4 C = vec4(0.211324865405187, 0.366025403784439,
-                                 -0.577350269189626, 0.024390243902439);
-              vec2 i  = floor(v + dot(v, C.yy) );
-              vec2 x0 = v -   i + dot(i, C.xx);
-              vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-              vec4 x12 = x0.xyxy + C.xxzz;
-              x12.xy -= i1;
-              i = mod289(i);
-              vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-                    + i.x + vec3(0.0, i1.x, 1.0 ));
-              vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-              m = m*m ;
-              m = m*m ;
-              vec3 x = 2.0 * fract(p * C.www) - 1.0;
-              vec3 h = abs(x) - 0.5;
-              vec3 ox = floor(x + 0.5);
-              vec3 a0 = x - ox;
-              m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-              vec3 g;
-              g.x  = a0.x  * x0.x  + h.x  * x0.y;
-              g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-              return 130.0 * dot(m, g);
-            }
-
-            void main() {
-              v_uv = uv;
-              vec2 p = uv * 2.8;
-              float t = u_time * 0.14;
-
-              float n1 = snoise(p + vec2(t * 0.7, t * 0.5));
-              float n2 = snoise(p * 2.4 - vec2(t * 0.4, t * 0.6)) * 0.5;
-              float elevation = (n1 + n2) * 3.8;
-
-              // Mouse interactive wave ripple
-              float distToMouse = length(uv - u_mouse);
-              elevation += sin(distToMouse * 16.0 - u_time * 2.0) * exp(-distToMouse * 3.0) * 0.6;
-
-              v_elevation = elevation;
-              vec3 newPos = position;
-              newPos.z += elevation;
-
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
-            }
-          `,
-          fragmentShader: `
-            uniform float u_time;
-            uniform vec3 u_colorVoid;
-            uniform vec3 u_colorCharcoal;
-            uniform vec3 u_colorFire;
-            uniform vec3 u_colorAmber;
-            varying vec2 v_uv;
-            varying float v_elevation;
-
-            void main() {
-              float normElev = clamp((v_elevation + 3.0) / 6.0, 0.0, 1.0);
-
-              vec3 col = mix(u_colorVoid, u_colorCharcoal, smoothstep(0.0, 0.45, normElev));
-              col = mix(col, u_colorFire * 0.7, smoothstep(0.45, 0.82, normElev));
-              col = mix(col, u_colorAmber * 0.85, smoothstep(0.82, 1.0, normElev));
-
-              float spec = pow(normElev, 4.0) * 0.3;
-              col += spec * u_colorAmber;
-
-              // Cinematic analog film grain
-              float grain = (fract(sin(dot(gl_FragCoord.xy + u_time * 8.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.05;
-              col += grain;
-
-              float distFromCenter = length(v_uv - 0.5);
-              float vignette = smoothstep(0.72, 0.15, distFromCenter);
-
-              gl_FragColor = vec4(col, vignette * 0.85);
-            }
-          `
-        });
-
-        bgMesh = new THREE.Mesh(planeGeo, bgMat);
-        bgMesh.rotation.x = -0.45;
-        bgMesh.position.set(0, -2, 0);
-        bgScene.add(bgMesh);
-
-        window.addEventListener("resize", () => {
-          bgCamera.aspect = window.innerWidth / window.innerHeight;
-          bgCamera.updateProjectionMatrix();
-          bgRenderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        window.addEventListener("mousemove", (e) => {
-          bgMouseX = e.clientX / window.innerWidth;
-          bgMouseY = 1.0 - (e.clientY / window.innerHeight);
-          if (bgMesh && bgMesh.material.uniforms) {
-            bgMesh.material.uniforms.u_mouse.value.set(bgMouseX, bgMouseY);
-          }
-        }, { passive: true });
-      }
-
-      initShaderGradient();
-
-      // ------------------------------------------------------------------------
-      // 4. LIQUID GLASS JS: Real WebGL Edge Refraction & Chromatic Dispersion
-      // (Reference: ybouane/liquidglass & dashersw/liquid-glass-js)
-      // Applied to cards, radar cockpit module, and terminal console
-      // ------------------------------------------------------------------------
-      function initLiquidGlassCard(cardEl) {
-        const canvas = cardEl.querySelector(".liquid-glass-canvas");
-        if (!canvas) return;
-
-        const gl = canvas.getContext("webgl");
-        if (!gl) return;
-
-        function resize() {
-          const rect = cardEl.getBoundingClientRect();
-          canvas.width = rect.width * Math.min(window.devicePixelRatio, 2);
-          canvas.height = rect.height * Math.min(window.devicePixelRatio, 2);
-        }
-        resize();
-        window.addEventListener("resize", resize);
-
-        const vs = `
-          attribute vec2 a_pos;
-          varying vec2 v_uv;
-          void main() {
-            v_uv = a_pos * 0.5 + 0.5;
-            gl_Position = vec4(a_pos, 0.0, 1.0);
-          }
-        `;
-
-        const fs = `
-          precision highp float;
-          varying vec2 v_uv;
-          uniform vec2 u_res;
-          uniform vec2 u_mouse;
-          uniform float u_hover;
-          uniform float u_time;
-
-          float sdRoundedBox(vec2 p, vec2 b, float r) {
-            vec2 q = abs(p) - b + r;
-            return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
-          }
-
-          void main() {
-            vec2 p = v_uv * u_res;
-            vec2 halfSize = u_res * 0.5;
-            vec2 centered = p - halfSize;
-            float radius = 18.0;
-
-            float d = sdRoundedBox(centered, halfSize - vec2(2.0), radius);
-            if (d > 0.0) discard;
-
-            float bevelWidth = 24.0;
-            float borderDist = -d;
-
-            float edgeFactor = clamp(borderDist / bevelWidth, 0.0, 1.0);
-            float slope = sin((1.0 - edgeFactor) * 1.57079);
-
-            vec2 grad = normalize(centered / (abs(centered) + 0.001));
-            vec2 refractOffset = grad * slope * 0.045;
-
-            // Chromatic Dispersion (Prismatic Red & Blue wavelength splitting)
-            float dispR = 0.94;
-            float dispG = 1.00;
-            float dispB = 1.06;
-
-            vec3 bgVoid = vec3(0.08, 0.08, 0.08);
-            vec3 bgCard = vec3(0.14, 0.14, 0.14);
-            vec3 fireEmber = vec3(0.91, 0.38, 0.10);
-            vec3 amberGold = vec3(0.96, 0.65, 0.14);
-
-            float rWave = sin((v_uv.x + refractOffset.x * dispR) * 12.0 + u_time) * 0.5 + 0.5;
-            float gWave = sin((v_uv.x + refractOffset.x * dispG) * 12.0 + u_time) * 0.5 + 0.5;
-            float bWave = sin((v_uv.x + refractOffset.x * dispB) * 12.0 + u_time) * 0.5 + 0.5;
-
-            vec3 glassCol = bgCard;
-            glassCol.r += rWave * 0.04;
-            glassCol.g += gWave * 0.03;
-            glassCol.b += bWave * 0.02;
-
-            // Cursor specular caustics & luminescence
-            float mDist = length(p - u_mouse);
-            float caustic = exp(-mDist * 0.015) * u_hover * (1.0 - edgeFactor) * 1.6;
-            glassCol += caustic * fireEmber;
-
-            // Luminous frosted rim border highlight
-            float rim = pow(1.0 - abs(d) / bevelWidth, 3.0) * (0.15 + u_hover * 0.35);
-            glassCol += rim * amberGold;
-
-            float grain = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.03;
-            glassCol += grain;
-
-            gl_FragColor = vec4(glassCol, 0.35 + (1.0 - edgeFactor) * 0.45);
-          }
-        `;
-
-        function compile(type, src) {
-          const s = gl.createShader(type);
-          gl.shaderSource(s, src);
-          gl.compileShader(s);
-          return s;
-        }
-
-        const prog = gl.createProgram();
-        gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
-        gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
-        gl.linkProgram(prog);
-
-        const b = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, b);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-
-        const aPos = gl.getAttribLocation(prog, "a_pos");
-        const uRes = gl.getUniformLocation(prog, "u_res");
-        const uMouse = gl.getUniformLocation(prog, "u_mouse");
-        const uHover = gl.getUniformLocation(prog, "u_hover");
-        const uTime = gl.getUniformLocation(prog, "u_time");
-
-        let mousePx = [0, 0];
-        let hoverVal = 0;
-
-        cardEl.addEventListener("mouseenter", () => { hoverVal = 1.0; });
-        cardEl.addEventListener("mouseleave", () => { hoverVal = 0.0; });
-        cardEl.addEventListener("mousemove", (e) => {
-          const rect = cardEl.getBoundingClientRect();
-          mousePx = [
-            (e.clientX - rect.left) * (canvas.width / rect.width),
-            (rect.height - (e.clientY - rect.top)) * (canvas.height / rect.height)
-          ];
-        });
-
-        function draw(time) {
-          gl.viewport(0, 0, canvas.width, canvas.height);
-          gl.useProgram(prog);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, b);
-          gl.enableVertexAttribArray(aPos);
-          gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-          gl.uniform2f(uRes, canvas.width, canvas.height);
-          gl.uniform2f(uMouse, mousePx[0], mousePx[1]);
-          gl.uniform1f(uHover, hoverVal);
-          gl.uniform1f(uTime, time * 0.001);
-
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-          requestAnimationFrame(draw);
-        }
-        requestAnimationFrame(draw);
-      }
-
-      document.querySelectorAll(".liquid-glass-card, .radar-cockpit-module, .terminal-panel").forEach(initLiquidGlassCard);
-
-      // GSAP ScrollTrigger Clip-Path Entrance for Proof Cards
-      if (!prefersReducedMotion && typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
-        gsap.registerPlugin(ScrollTrigger);
-
-        document.querySelectorAll(".liquid-glass-card").forEach((card) => {
-          gsap.to(card, {
-            scrollTrigger: {
-              trigger: card,
-              start: "top 88%",
-              end: "top 50%",
-              scrub: 1.2
-            },
-            clipPath: "inset(0% 0 0 0)",
-            ease: "power2.out"
-          });
-        });
-      } else {
-        document.querySelectorAll(".liquid-glass-card").forEach(c => {
-          c.style.clipPath = "inset(0% 0 0 0)";
-        });
-      }
-
-      // ------------------------------------------------------------------------
-      // 5. REACT THREE FIBER / THREE.JS 3D VOLUMETRIC RADAR GLOBE
-      // Interactive 3D hemisphere with spatial flight trajectory lines,
-      // altitude layers, orbiting agent beacons, and hazard intercept cone
-      // ------------------------------------------------------------------------
-      const cockpitCanvas = document.getElementById("radarCockpitCanvas");
-      let cockpitRenderer, cockpitScene, cockpitCamera;
-      let cockpitGlobeGroup, cockpitSweep;
-      let tubeA, tubeBCollision, tubeBResolved, activeTubeB;
-      let beaconA, beaconB, beaconC;
-      let hazardCone, hazardLine, safeClearanceArc;
-      let ringFL300, ringFL340, ringFL360, ringFL390;
-      let isThreatResolved = false;
-
-      // Orbit interaction variables
-      let userRotX = 0.35, userRotY = -0.5;
-      let isDragging = false, prevX = 0, prevY = 0;
-      let camDistance = 28;
-
-      // 3D Flight Curve Coordinates
-      const curveA = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-12, 3.2, -6),
-        new THREE.Vector3(-5, 3.2, -2),
-        new THREE.Vector3(2.5, 3.2, 1.8),
-        new THREE.Vector3(10, 3.2, 6)
-      ]);
-
-      const curveBCollision = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-7, 3.2, 10),
-        new THREE.Vector3(-1.5, 3.2, 5),
-        new THREE.Vector3(2.5, 3.2, 1.8),
-        new THREE.Vector3(7, 3.2, -3)
-      ]);
-
-      const curveBResolved = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-7, 3.2, 10),
-        new THREE.Vector3(-1.5, 4.8, 6.5),
-        new THREE.Vector3(4.2, 6.8, 5.0),
-        new THREE.Vector3(11, 6.8, 2.5)
-      ]);
-
-      const curveC = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(9, -3.2, 0),
-        new THREE.Vector3(0, -3.2, 9),
-        new THREE.Vector3(-9, -3.2, 0),
-        new THREE.Vector3(0, -3.2, -9)
-      ], true);
-
-      function init3DVolumetricRadar() {
-        if (!cockpitCanvas || typeof THREE === "undefined") return;
-
-        cockpitRenderer = new THREE.WebGLRenderer({
-          canvas: cockpitCanvas,
-          antialias: true,
-          alpha: true
-        });
-        const rect = cockpitCanvas.getBoundingClientRect();
-        cockpitRenderer.setSize(rect.width || 480, rect.height || 480);
-        cockpitRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-        cockpitScene = new THREE.Scene();
-        cockpitCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-        cockpitCamera.position.set(0, 16, 26);
-        cockpitCamera.lookAt(0, 0, 0);
-
-        cockpitGlobeGroup = new THREE.Group();
-        cockpitScene.add(cockpitGlobeGroup);
-
-        // 5.1 Geodesic Volumetric Airspace Globe (Hemisphere & Longitude Grids)
-        const globeGeo = new THREE.IcosahedronGeometry(13.5, 2);
-        const globeMat = new THREE.MeshBasicMaterial({
-          color: 0xE8611A,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.14
-        });
-        const globeMesh = new THREE.Mesh(globeGeo, globeMat);
-        cockpitGlobeGroup.add(globeMesh);
-
-        // 5.2 Tactical Altitude Disks & Range Rings
-        function createDisk(y, r, color, opacity, dashed) {
-          const pts = [];
-          for (let i = 0; i <= 64; i++) {
-            const a = (i / 64) * Math.PI * 2;
-            pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
-          }
-          const geo = new THREE.BufferGeometry().setFromPoints(pts);
-          let mat;
-          if (dashed) {
-            mat = new THREE.LineDashedMaterial({ color: color, dashSize: 0.8, gapSize: 0.5, transparent: true, opacity: opacity });
-          } else {
-            mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity });
-          }
-          const line = new THREE.Line(geo, mat);
-          if (dashed) line.computeLineDistances();
-          return line;
-        }
-
-        ringFL300 = createDisk(-3.2, 11, 0x666666, 0.25, true);  // FL300
-        ringFL340 = createDisk(0.0, 12, 0xE8611A, 0.35, false);  // FL340
-        ringFL360 = createDisk(3.2, 12.8, 0xE8611A, 0.55, false); // FL360 (Hazard Corridor)
-        ringFL390 = createDisk(6.8, 10.5, 0xF5A623, 0.35, true);  // FL390 (Clearance Layer)
-
-        cockpitGlobeGroup.add(ringFL300);
-        cockpitGlobeGroup.add(ringFL340);
-        cockpitGlobeGroup.add(ringFL360);
-        cockpitGlobeGroup.add(ringFL390);
-
-        // Cardinal Crosshair Radials (000°, 090°, 180°, 270°)
-        const chGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(-13, 3.2, 0), new THREE.Vector3(13, 3.2, 0),
-          new THREE.Vector3(0, 3.2, -13), new THREE.Vector3(0, 3.2, 13)
-        ]);
-        const chMat = new THREE.LineBasicMaterial({ color: 0x252525, transparent: true, opacity: 0.6 });
-        cockpitGlobeGroup.add(new THREE.LineSegments(chGeo, chMat));
-
-        // 5.3 3D Flight Trajectories
-        const tubeAGeo = new THREE.TubeGeometry(curveA, 36, 0.07, 8, false);
-        const tubeAMat = new THREE.MeshBasicMaterial({ color: 0xE8611A, transparent: true, opacity: 0.75 });
-        tubeA = new THREE.Mesh(tubeAGeo, tubeAMat);
-        cockpitGlobeGroup.add(tubeA);
-
-        const tubeBGeoCol = new THREE.TubeGeometry(curveBCollision, 36, 0.07, 8, false);
-        const tubeBGeoRes = new THREE.TubeGeometry(curveBResolved, 36, 0.07, 8, false);
-        const tubeBMat = new THREE.MeshBasicMaterial({ color: 0xE8611A, transparent: true, opacity: 0.75 });
-        tubeBCollision = new THREE.Mesh(tubeBGeoCol, tubeBMat);
-        tubeBResolved = new THREE.Mesh(tubeBGeoRes, new THREE.MeshBasicMaterial({ color: 0xF5A623, transparent: true, opacity: 0.75 }));
-        activeTubeB = tubeBCollision;
-        cockpitGlobeGroup.add(tubeBCollision);
-
-        // Agent C Holding Orbit (FL300)
-        const tubeCGeo = new THREE.TubeGeometry(curveC, 48, 0.05, 6, true);
-        const tubeCMat = new THREE.MeshBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.4 });
-        cockpitGlobeGroup.add(new THREE.Mesh(tubeCGeo, tubeCMat));
-
-        // 5.4 Hazard Intercept Cone & Hazard Volume
-        // 3D volumetric hazard cylinder / cone connecting the collision intercept
-        const hazardConeGeo = new THREE.CylinderGeometry(1.2, 1.2, 2.4, 16, 1, true);
-        const hazardConeMat = new THREE.MeshBasicMaterial({
-          color: 0xE8611A,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.75
-        });
-        hazardCone = new THREE.Mesh(hazardConeGeo, hazardConeMat);
-        hazardCone.position.set(2.5, 3.2, 1.8);
-        cockpitGlobeGroup.add(hazardCone);
-
-        // Hazard Intercept Vector Line
-        const hLineGeo = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(1.2, 3.2, 0.9),
-          new THREE.Vector3(3.6, 3.2, 2.5)
-        ]);
-        const hLineMat = new THREE.LineDashedMaterial({
-          color: 0xE8611A,
-          dashSize: 0.4,
-          gapSize: 0.2,
-          transparent: true,
-          opacity: 0.9
-        });
-        hazardLine = new THREE.Line(hLineGeo, hLineMat);
-        hazardLine.computeLineDistances();
-        cockpitGlobeGroup.add(hazardLine);
-
-        // Safe Clearance Arc in Resolved Mode
-        const safePts = [];
-        for (let i = 0; i <= 32; i++) {
-          const t = i / 32;
-          safePts.push(new THREE.Vector3(2.5 + t * 1.8, 3.2 + t * 3.6, 1.8 + t * 3.4));
-        }
-        const safeGeo = new THREE.BufferGeometry().setFromPoints(safePts);
-        const safeMat = new THREE.LineDashedMaterial({
-          color: 0xF5A623,
-          dashSize: 0.5,
-          gapSize: 0.3,
-          transparent: true,
-          opacity: 0.0
-        });
-        safeClearanceArc = new THREE.Line(safeGeo, safeMat);
-        safeClearanceArc.computeLineDistances();
-        cockpitGlobeGroup.add(safeClearanceArc);
-
-        // 5.5 3D Agent Beacons
-        function makeBeacon(colorHex) {
-          const g = new THREE.Group();
-          const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.35), new THREE.MeshBasicMaterial({ color: colorHex }));
-          g.add(core);
-
-          const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 20), new THREE.MeshBasicMaterial({
-            color: colorHex,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.6
-          }));
-          ring.rotation.x = Math.PI / 2;
-          g.add(ring);
-          g.ring = ring;
-          return g;
-        }
-
-        beaconA = makeBeacon(0xE8611A);
-        beaconB = makeBeacon(0xE8611A);
-        beaconC = makeBeacon(0xF5A623);
-
-        cockpitGlobeGroup.add(beaconA);
-        cockpitGlobeGroup.add(beaconB);
-        cockpitGlobeGroup.add(beaconC);
-
-        // 5.6 Volumetric Rotating Radar Sweep Wedge
-        const swGeo = new THREE.CylinderGeometry(12.8, 12.8, 0.04, 32, 1, false, 0, Math.PI / 3.5);
-        const swMat = new THREE.MeshBasicMaterial({
-          color: 0xE8611A,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.16
-        });
-        cockpitSweep = new THREE.Mesh(swGeo, swMat);
-        cockpitSweep.position.y = 3.2;
-        cockpitGlobeGroup.add(cockpitSweep);
-
-        // 5.7 Mouse Drag & Zoom Controls for Volumetric Globe
-        cockpitCanvas.addEventListener("mousedown", (e) => {
-          isDragging = true;
-          prevX = e.clientX;
-          prevY = e.clientY;
-        });
-        window.addEventListener("mouseup", () => { isDragging = false; });
-        window.addEventListener("mousemove", (e) => {
-          if (!isDragging) return;
-          const dx = e.clientX - prevX;
-          const dy = e.clientY - prevY;
-          prevX = e.clientX;
-          prevY = e.clientY;
-          userRotY += dx * 0.008;
-          userRotX += dy * 0.008;
-          userRotX = Math.max(-1.2, Math.min(1.2, userRotX));
-        });
-
-        // Wheel to Zoom
-        cockpitCanvas.addEventListener("wheel", (e) => {
-          e.preventDefault();
-          camDistance += e.deltaY * 0.02;
-          camDistance = Math.max(16, Math.min(42, camDistance));
-        }, { passive: false });
-
-        // Altitude Slice Filter Buttons
-        const btnSliceAll = document.getElementById("btnSliceAll");
-        const btnSliceUpper = document.getElementById("btnSliceUpper");
-        const btnSliceLower = document.getElementById("btnSliceLower");
-        const btnReset = document.getElementById("btnResetRadar");
-
-        function setSliceBtnActive(activeBtn) {
-          [btnSliceAll, btnSliceUpper, btnSliceLower].forEach(b => b.classList.remove("active"));
-          activeBtn.classList.add("active");
-        }
-
-        if (btnSliceAll) {
-          btnSliceAll.addEventListener("click", () => {
-            setSliceBtnActive(btnSliceAll);
-            ringFL300.visible = true;
-            ringFL340.visible = true;
-            ringFL360.visible = true;
-            ringFL390.visible = true;
-            tubeA.visible = true;
-            beaconA.visible = true;
-            beaconB.visible = true;
-            beaconC.visible = true;
-          });
-        }
-        if (btnSliceUpper) {
-          btnSliceUpper.addEventListener("click", () => {
-            setSliceBtnActive(btnSliceUpper);
-            ringFL300.visible = false;
-            ringFL340.visible = false;
-            ringFL360.visible = true;
-            ringFL390.visible = true;
-            beaconC.visible = false;
-          });
-        }
-        if (btnSliceLower) {
-          btnSliceLower.addEventListener("click", () => {
-            setSliceBtnActive(btnSliceLower);
-            ringFL300.visible = true;
-            ringFL340.visible = false;
-            ringFL360.visible = false;
-            ringFL390.visible = false;
-            beaconC.visible = true;
-            beaconA.visible = false;
-            beaconB.visible = false;
-          });
-        }
-        if (btnReset) {
-          btnReset.addEventListener("click", () => {
-            userRotX = 0.35;
-            userRotY = -0.5;
-            camDistance = 28;
-          });
-        }
-      }
-
-      init3DVolumetricRadar();
-
-      // ------------------------------------------------------------------------
-      // 6. OPERATIONS DASHBOARD & STATE CONTROLLER (COLLISION vs RESOLVED)
-      // ------------------------------------------------------------------------
-      const toggleThreatBtn = document.getElementById("toggleThreatBtn");
-      const threatLight = document.getElementById("threatLight");
-      const threatLabel = document.getElementById("threatLabel");
-      const cockpitHeaderDot = document.getElementById("cockpitHeaderDot");
-      const agentBDot = document.getElementById("agentBDot");
-      const agentBAlt = document.getElementById("agentBAlt");
-      const agentBDomain = document.getElementById("agentBDomain");
-      const agentBState = document.getElementById("agentBState");
-      const agentCardB = document.getElementById("agentCardB");
-
-      function updateThreatState(resolved) {
-        isThreatResolved = resolved;
-
-        if (isThreatResolved) {
-          // RESOLVED STATE
-          threatLight.classList.add("resolved");
-          cockpitHeaderDot.classList.add("resolved");
-          threatLabel.classList.add("resolved");
-          threatLabel.textContent = "✓ RESOLVED: AUTO-STEERED BY AST VISITOR";
-          toggleThreatBtn.classList.add("resolved");
-          toggleThreatBtn.innerHTML = "<span>INJECT COLLISION</span>";
-
-          // Agent B HUD
-          agentBDot.className = "agent-status-dot dot-amber";
-          agentBAlt.textContent = "FL390 (CLIMB)";
-          agentBDomain.className = "station-val val-amber";
-          agentBDomain.textContent = "float[0..1] (PATCHED)";
-          agentBState.className = "station-val val-amber";
-          agentBState.textContent = "CLEAR";
-          agentCardB.classList.add("resolved-b");
-
-          // 3D Airspace geometry updates
-          if (cockpitGlobeGroup) {
-            cockpitGlobeGroup.remove(tubeBCollision);
-            cockpitGlobeGroup.add(tubeBResolved);
-            activeTubeB = tubeBResolved;
-          }
-          if (hazardCone) hazardCone.visible = false;
-          if (hazardLine) hazardLine.visible = false;
-          if (safeClearanceArc) {
-            safeClearanceArc.visible = true;
-            safeClearanceArc.material.opacity = 0.9;
-          }
-          if (beaconB) {
-            beaconB.children[0].material.color.setHex(0xF5A623);
-            beaconB.ring.material.color.setHex(0xF5A623);
-          }
-          if (cockpitSweep) cockpitSweep.material.color.setHex(0xF5A623);
-
-          // Terminal Log
-          logTerminalEntry("ADVISORY_APPLIED", "Agent B re-mined with patch: discount=0.15f [Domain: float[0.0, 1.0]]", "ADVISORIES");
-          logTerminalEntry("TCAS_OK", "Separation distance > 44NM. Flight corridors clear of semantic hazard.", "AST");
-        } else {
-          // COLLISION STATE
-          threatLight.classList.remove("resolved");
-          cockpitHeaderDot.classList.remove("resolved");
-          threatLabel.classList.remove("resolved");
-          threatLabel.textContent = "⚠ TCAS ALERT: COLLISION DETECTED";
-          toggleThreatBtn.classList.remove("resolved");
-          toggleThreatBtn.innerHTML = "<span>APPLY ADVISORY</span>";
-
-          // Agent B HUD
-          agentBDot.className = "agent-status-dot dot-fire";
-          agentBAlt.textContent = "FL360";
-          agentBDomain.className = "station-val val-alert";
-          agentBDomain.textContent = "int[0..100]";
-          agentBState.className = "station-val val-alert";
-          agentBState.textContent = "COLLIDING";
-          agentCardB.classList.remove("resolved-b");
-
-          // 3D Airspace geometry updates
-          if (cockpitGlobeGroup) {
-            cockpitGlobeGroup.remove(tubeBResolved);
-            cockpitGlobeGroup.add(tubeBCollision);
-            activeTubeB = tubeBCollision;
-          }
-          if (hazardCone) hazardCone.visible = true;
-          if (hazardLine) hazardLine.visible = true;
-          if (safeClearanceArc) safeClearanceArc.visible = false;
-          if (beaconB) {
-            beaconB.children[0].material.color.setHex(0xE8611A);
-            beaconB.ring.material.color.setHex(0xE8611A);
-          }
-          if (cockpitSweep) cockpitSweep.material.color.setHex(0xE8611A);
-
-          // Terminal Log
-          logTerminalEntry("ALERT", "Incompatible assumption vector detected: Agent B scalar integer != float [0.0..1.0]", "ALERTS");
-        }
-      }
-
-      if (toggleThreatBtn) {
-        toggleThreatBtn.addEventListener("click", () => {
-          updateThreatState(!isThreatResolved);
-        });
-      }
-
-      // ------------------------------------------------------------------------
-      // 7. TERMINAL ENGINE: Filtering, Live Feed & Modal Inspection
-      // ------------------------------------------------------------------------
-      const termOutput = document.getElementById("termOutput");
-      const filterTabs = document.querySelectorAll(".filter-tab");
-      let activeFilter = "ALL";
-
-      filterTabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          filterTabs.forEach(t => t.classList.remove("active"));
-          tab.classList.add("active");
-          activeFilter = tab.dataset.filter;
-          filterTerminalLines();
         });
       });
 
-      function filterTerminalLines() {
-        const lines = termOutput.querySelectorAll(".terminal-line");
-        lines.forEach((line) => {
-          const type = line.dataset.type || "AST";
-          if (activeFilter === "ALL" || type === activeFilter) {
-            line.style.display = "flex";
-          } else {
-            line.style.display = "none";
+      /* Steps — slide in from left with opacity */
+      gsap.utils.toArray('.step').forEach((step, i) => {
+        gsap.from(step, {
+          x: -40,
+          opacity: 0,
+          duration: 0.8,
+          delay: i * 0.15,
+          scrollTrigger: {
+            trigger: step,
+            start: 'top 85%',
           }
-        });
-      }
-
-      function logTerminalEntry(tag, msg, type) {
-        if (!termOutput) return;
-        const now = new Date();
-        const timeStr = `[${now.toTimeString().split(' ')[0]}.${String(now.getMilliseconds()).padStart(3, '0')}]`;
-
-        const row = document.createElement("div");
-        row.className = "terminal-line";
-        row.dataset.type = type || "AST";
-
-        let tagClass = "line-tag-miner";
-        if (type === "ALERTS") tagClass = "line-tag-alert";
-        if (type === "ADVISORIES") tagClass = "line-tag-advisory";
-
-        row.innerHTML = `
-          <span class="line-time">${timeStr}</span>
-          <span class="${tagClass}">${tag}:</span>
-          <span>${msg}</span>
-        `;
-        termOutput.appendChild(row);
-        filterTerminalLines();
-        termOutput.scrollTop = termOutput.scrollHeight;
-      }
-
-      // Clear terminal
-      const btnClear = document.getElementById("btnClearTerm");
-      if (btnClear) {
-        btnClear.addEventListener("click", () => {
-          termOutput.innerHTML = "";
-          logTerminalEntry("SYS", "Terminal stream cleared by operator", "AST");
-        });
-      }
-
-      // Export JSON
-      const btnExport = document.getElementById("btnExportJson");
-      if (btnExport) {
-        btnExport.addEventListener("click", () => {
-          const exportData = {
-            timestamp: new Date().toISOString(),
-            system: "CROSSFIRE AST-TCAS DAEMON",
-            version: "1.2.0",
-            status: isThreatResolved ? "RESOLVED" : "COLLISION_ALERT",
-            claims: [
-              { agent: "Agent_A", symbol: "discount", domain: "float[0.0, 1.0]", line: 42, contract: "value_domain" },
-              { agent: "Agent_B", symbol: "discount", domain: isThreatResolved ? "float[0.0, 1.0]" : "int[0, 100]", line: 18, contract: "value_domain" }
-            ],
-            collisionVector: {
-              class: "invariant_drift",
-              severity: 0.94,
-              halted: !isThreatResolved
-            }
-          };
-          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `crossfire_audit_${Date.now()}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-      }
-
-      // Modal Drawer for AST Diff Inspection
-      const astModal = document.getElementById("astModal");
-      const modalCloseBtn = document.getElementById("modalCloseBtn");
-      const modalTitle = document.getElementById("modalTitle");
-      const modalCodeA = document.getElementById("modalCodeA");
-      const modalCodeB = document.getElementById("modalCodeB");
-      const modalAdvisory = document.getElementById("modalAdvisory");
-
-      function openModalForCard(cardId) {
-        astModal.classList.add("open");
-        if (cardId === "01") {
-          modalTitle.textContent = "AST COLLISION INSPECTION // 01 INVARIANT DRIFT";
-          modalCodeA.textContent = `# checkout.py (Line 42)\ndef apply_discount(total: float, discount: float) -> float:\n    # DOMAIN CLAIM: float[0.0, 1.0]\n    return total * (1.0 - discount)`;
-          modalCodeB.textContent = `# promo.py (Line 18)\n# EXPECTS INTEGER PERCENT [0..100]\ndiscount = 15\nfinal_price = apply_discount(100.0, discount)\n# SILENT 1500% OVERCHARGE!`;
-          modalAdvisory.textContent = "Inject patch into Agent B queue: Replace literal 15 with float normalized scalar 0.15f.";
-        } else if (cardId === "02") {
-          modalTitle.textContent = "AST COLLISION INSPECTION // 02 LIFECYCLE DESYNC";
-          modalCodeA.textContent = `# auth_bus.py (Line 89)\nasync def invalidate_session(token: str):\n    # ASYNC EVENT EMIT\n    await event_bus.emit('token.revoked', token)`;
-          modalCodeB.textContent = `# user_service.py (Line 112)\ndef purge_user(user_id: str):\n    # SYNCHRONOUS TABLE DROP\n    db.execute('DELETE FROM users WHERE id = ?')\n    # RACE WINDOW: 12 SECONDS`;
-          modalAdvisory.textContent = "Inject patch: Wrap user purge in distributed barrier await event_bus.drain_confirm('token.revoked').";
-        } else if (cardId === "03") {
-          modalTitle.textContent = "AST COLLISION INSPECTION // 03 CONTRACT DIVERGENCE";
-          modalCodeA.textContent = `# inventory.py (Line 54)\ndef get_stock(sku: str) -> Optional[int]:\n    # REPLACED RAISE ItemNotFoundError\n    return None`;
-          modalCodeB.textContent = `# order.py (Line 73)\ntry:\n    stock = inventory.get_stock(sku)\nexcept ItemNotFoundError:\n    # SILENCED: NEVER FIRES\n    trigger_replenishment(sku)`;
-          modalAdvisory.textContent = "Inject patch: Re-establish ItemNotFoundError exception signature or migrate caller to explicit None check.";
-        }
-      }
-
-      document.querySelectorAll(".liquid-glass-card").forEach(card => {
-        card.addEventListener("click", () => {
-          openModalForCard(card.dataset.card);
         });
       });
 
-      if (modalCloseBtn) {
-        modalCloseBtn.addEventListener("click", () => {
-          astModal.classList.remove("open");
-        });
-      }
-      astModal.addEventListener("click", (e) => {
-        if (e.target === astModal) astModal.classList.remove("open");
+      /* Terminal — reveal with scale */
+      gsap.from('.terminal', {
+        scale: 0.95,
+        opacity: 0,
+        duration: 1,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '.terminal',
+          start: 'top 80%',
+        }
       });
 
-      // Agent Card Focus interaction
-      document.querySelectorAll(".agent-station-card").forEach(card => {
-        card.addEventListener("click", () => {
-          document.querySelectorAll(".agent-station-card").forEach(c => c.classList.remove("active"));
-          card.classList.add("active");
-          const agent = card.dataset.agent;
-          logTerminalEntry("FOCUS", `Operator focused camera on Agent ${agent} telemetry corridor`, "AST");
+      /* About text — words reveal */
+      const aboutText = document.querySelector('.about-text');
+      if (aboutText) {
+        gsap.from(aboutText, {
+          opacity: 0,
+          y: 30,
+          duration: 1,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: aboutText,
+            start: 'top 80%',
+          }
         });
-      });
-
-      // ------------------------------------------------------------------------
-      // 8. MASTER ANIMATION LOOP (60FPS WebGL Synchronization)
-      // ------------------------------------------------------------------------
-      let clock = new THREE.Clock();
-
-      function animate() {
-        requestAnimationFrame(animate);
-        const elapsedTime = clock.getElapsedTime();
-
-        // 8.1 Update Shader Gradient Living Mesh
-        if (bgMesh && bgMesh.material.uniforms) {
-          bgMesh.material.uniforms.u_time.value = elapsedTime;
-        }
-        if (bgRenderer && bgScene && bgCamera) {
-          bgRenderer.render(bgScene, bgCamera);
-        }
-
-        // 8.2 Update 3D Volumetric Radar Globe
-        if (cockpitScene && cockpitCamera && cockpitRenderer) {
-          // Camera spherical orbit position
-          cockpitCamera.position.x = camDistance * Math.sin(userRotY) * Math.cos(userRotX);
-          cockpitCamera.position.y = camDistance * Math.sin(userRotX);
-          cockpitCamera.position.z = camDistance * Math.cos(userRotY) * Math.cos(userRotX);
-          cockpitCamera.lookAt(0, 0, 0);
-
-          // Gentle ambient drift rotation
-          if (cockpitGlobeGroup) {
-            cockpitGlobeGroup.rotation.y = elapsedTime * 0.03;
-          }
-
-          // Rotating Sweep
-          if (cockpitSweep) {
-            cockpitSweep.rotation.y = -elapsedTime * (isThreatResolved ? 0.8 : 1.6);
-          }
-
-          // Pulsing Hazard Intercept Cone
-          if (hazardCone && !isThreatResolved) {
-            const hcScale = 1.0 + Math.sin(elapsedTime * 6.0) * 0.22;
-            hazardCone.scale.set(hcScale, 1.0, hcScale);
-          }
-
-          // Agent A Flight Beacon Animation
-          if (beaconA) {
-            const pA = curveA.getPointAt((elapsedTime * 0.06) % 1.0);
-            beaconA.position.copy(pA);
-            if (beaconA.ring) {
-              const s = 1.0 + Math.sin(elapsedTime * 4.0) * 0.25;
-              beaconA.ring.scale.set(s, s, s);
-            }
-          }
-
-          // Agent B Flight Beacon Animation
-          if (beaconB) {
-            const curCurveB = isThreatResolved ? curveBResolved : curveBCollision;
-            const pB = curCurveB.getPointAt((elapsedTime * (isThreatResolved ? 0.05 : 0.07)) % 1.0);
-            beaconB.position.copy(pB);
-            if (beaconB.ring) {
-              const s = 1.0 + Math.sin(elapsedTime * (isThreatResolved ? 3.0 : 6.0)) * 0.3;
-              beaconB.ring.scale.set(s, s, s);
-            }
-          }
-
-          // Agent C Flight Beacon Animation
-          if (beaconC) {
-            const pC = curveC.getPointAt((elapsedTime * 0.04) % 1.0);
-            beaconC.position.copy(pC);
-          }
-
-          cockpitRenderer.render(cockpitScene, cockpitCamera);
-        }
       }
+    }
 
-      animate();
-
-    })();
+    /* ── Magnetic button effect ── */
+    document.querySelectorAll('.magnetic').forEach(btn => {
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const relX = e.clientX - (rect.left + rect.width / 2);
+        const relY = e.clientY - (rect.top + rect.height / 2);
+        btn.style.transform = `translate(${relX * 0.25}px, ${relY * 0.25}px)`;
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'translate(0, 0)';
+      });
+    });
   </script>
+
 </body>
 </html>
