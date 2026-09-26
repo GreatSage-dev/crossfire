@@ -214,3 +214,24 @@ def test_pydantic_model_validators() -> None:
             source_line=1,
             confidence=0.8,
         )
+
+
+def test_extract_claims_arbitrary_unseen_symbols() -> None:
+    """Verify that miner extracts invariant claims on arbitrary user-defined symbols (no hardcoding)."""
+    source_code = """
+def update_liquidity_pool(token_ratio: float = 0.25):
+    assert 0.0 <= token_ratio <= 1.0
+    fee_percentage = 20
+    return token_ratio * 100
+"""
+    claims = extract_claims(source_code, agent_id="agent_quant")
+    symbols = {c.symbol: c.domain for c in claims}
+
+    # token_ratio must have float[0.0, 1.0] extracted from assertion and parameter default
+    token_claims = [c for c in claims if c.symbol == "token_ratio"]
+    assert any(c.domain == "float[0.0, 1.0]" for c in token_claims)
+
+    # fee_percentage must be extracted as int[0, 100] from constant assignment
+    fee_claims = [c for c in claims if c.symbol == "fee_percentage"]
+    assert any(c.domain == "int[0, 100]" for c in fee_claims)
+

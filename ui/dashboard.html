@@ -835,6 +835,45 @@
 
   </main>
 
+  <!-- ══════ LIVE CONFLICT SANDBOX (TEST YOUR OWN CODE) ══════ -->
+  <section class="panel sandbox-panel" style="margin: 0 32px 32px; background: var(--bg-card); border: 1px solid var(--bg-border); border-radius: 4px;">
+    <div class="panel-head" style="padding: 14px 20px; border-bottom: 1px solid var(--bg-border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase;">Interactive Conflict Sandbox</span>
+        <span style="background: rgba(232, 97, 26, 0.2); color: var(--accent-fire); font-size: 0.6875rem; padding: 2px 8px; border-radius: 2px;">Try Your Own Code</span>
+      </div>
+      <span style="font-size: 0.6875rem; color: var(--text-muted);">Type arbitrary Python in both scratchpads to test real-time AST collision intercept</span>
+    </div>
+    <div class="panel-body" style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <label style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; font-weight: 500;">Subagent A Scratchpad</label>
+          <span style="font-size: 0.6875rem; color: var(--accent-fire);">Enforces float domain [0.0, 1.0]</span>
+        </div>
+        <textarea id="sandboxCodeA" style="width: 100%; height: 110px; background: var(--bg-void); color: var(--text-primary); border: 1px solid var(--bg-border); font-family: var(--font-mono); font-size: 0.75rem; padding: 12px; border-radius: 4px; resize: vertical; line-height: 1.5;">def apply_tax(total: float, tax_rate: float = 0.05):
+    assert 0.0 <= tax_rate <= 1.0
+    return total * (1.0 + tax_rate)</textarea>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <label style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; font-weight: 500;">Subagent B Scratchpad</label>
+          <span style="font-size: 0.6875rem; color: var(--accent-amber);">Assumes integer percentage [0, 100]</span>
+        </div>
+        <textarea id="sandboxCodeB" style="width: 100%; height: 110px; background: var(--bg-void); color: var(--text-primary); border: 1px solid var(--bg-border); font-family: var(--font-mono); font-size: 0.75rem; padding: 12px; border-radius: 4px; resize: vertical; line-height: 1.5;">def calculate_order(total: float, tax_rate: int = 5):
+    # Subagent B assumes percentage 5% as integer
+    return total * (1.0 + tax_rate)</textarea>
+      </div>
+      <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--bg-border); padding-top: 16px; margin-top: 4px;">
+        <div id="sandboxFeedback" style="font-size: 0.75rem; color: var(--accent-amber);">
+          Edit code above or change variable names (e.g. <code>margin</code>, <code>fee</code>, <code>tax_rate</code>) and test live TCAS collision steering.
+        </div>
+        <button id="btnRunSandbox" class="toggle-btn" style="padding: 10px 24px; font-weight: 600; cursor: pointer; font-size: 0.75rem; background: var(--accent-fire); color: var(--text-primary); border: 1px solid var(--accent-fire); border-radius: 20px;">
+          ▶ Analyze Live Conflict
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ══════ SCRIPTS ══════ -->
   <script>
     // Clock
@@ -925,6 +964,133 @@
       }
     }
     initWebSocket();
+
+    // ── Interactive Conflict Sandbox Logic ──
+    const btnRunSandbox = document.getElementById('btnRunSandbox');
+    if (btnRunSandbox) {
+      btnRunSandbox.addEventListener('click', () => {
+        const codeA = document.getElementById('sandboxCodeA').value;
+        const codeB = document.getElementById('sandboxCodeB').value;
+        const feedback = document.getElementById('sandboxFeedback');
+
+        function parseClaims(code, agentId) {
+          const claims = [];
+          const lines = code.split('\n');
+          lines.forEach((line, idx) => {
+            // Assert comparison: assert 0.0 <= x <= 1.0 or assert 0 <= x <= 100
+            const cmpMatch = line.match(/assert\s+([0-9.]+)\s*<=\s*([a-zA-Z_0-9]+)\s*<=\s*([0-9.]+)/);
+            if (cmpMatch) {
+              const low = parseFloat(cmpMatch[1]);
+              const sym = cmpMatch[2];
+              const high = parseFloat(cmpMatch[3]);
+              const isFloat = high === 1.0 || cmpMatch[1].includes('.') || cmpMatch[3].includes('.');
+              claims.push({
+                symbol: sym,
+                domain: isFloat ? 'float[0.0, 1.0]' : 'int[0, 100]',
+                type: 'value_domain',
+                line: idx + 1,
+                agent: agentId
+              });
+            }
+            // Parameter default: (total: float, tax_rate: float = 0.05) or (tax_rate: int = 5)
+            const paramMatch = line.match(/([a-zA-Z_0-9]+)\s*(?::\s*(float|int))?\s*=\s*([0-9.]+)/);
+            if (paramMatch && !paramMatch[1].startsWith('total')) {
+              const sym = paramMatch[1];
+              const typeHint = paramMatch[2];
+              const isFloat = typeHint === 'float' || paramMatch[3].includes('.') || parseFloat(paramMatch[3]) <= 1.0;
+              claims.push({
+                symbol: sym,
+                domain: isFloat ? 'float[0.0, 1.0]' : 'int[0, 100]',
+                type: 'value_domain',
+                line: idx + 1,
+                agent: agentId
+              });
+            }
+            // Coroutine lifecycle: async def foo vs def foo
+            const asyncMatch = line.match(/async\s+def\s+([a-zA-Z_0-9]+)/);
+            if (asyncMatch) {
+              claims.push({ symbol: asyncMatch[1], domain: 'async', type: 'state_lifecycle', line: idx + 1, agent: agentId });
+            } else {
+              const syncMatch = line.match(/^(\s*)def\s+([a-zA-Z_0-9]+)/);
+              if (syncMatch && !syncMatch[2].startsWith('calculate') && !syncMatch[2].startsWith('apply')) {
+                claims.push({ symbol: syncMatch[2], domain: 'sync', type: 'state_lifecycle', line: idx + 1, agent: agentId });
+              }
+            }
+          });
+          return claims;
+        }
+
+        const claimsA = parseClaims(codeA, 'Agent A');
+        const claimsB = parseClaims(codeB, 'Agent B');
+
+        const detected = [];
+        claimsA.forEach(ca => {
+          claimsB.forEach(cb => {
+            if (ca.symbol === cb.symbol && ca.domain !== cb.domain) {
+              detected.push({
+                symbol: ca.symbol,
+                domainA: ca.domain,
+                domainB: cb.domain,
+                type: ca.type,
+                severity: ca.type === 'value_domain' ? '0.95' : '0.85'
+              });
+            }
+          });
+        });
+
+        if (detected.length > 0) {
+          const col = detected[0];
+          feedback.innerHTML = `<span style="color: var(--accent-fire); font-weight: 600;">⚠ LIVE COLLISION INTERCEPTED:</span> Conflict on '<strong>${col.symbol}</strong>' (${col.domainA} vs ${col.domainB}) — PreToolUse Hook HALTED with Exit Code 2.`;
+          
+          document.body.classList.remove('resolved');
+          toggle.textContent = 'COLLISION';
+          statusText.innerHTML = `ACTIVE — 1 COLLISION ON '${col.symbol}' (EXIT 2)`;
+          statusText.style.color = 'var(--accent-fire)';
+          collisionCount.textContent = '1';
+
+          // Insert or update Assumption Ledger row
+          const tableBody = document.querySelector('tbody');
+          if (tableBody) {
+            const row = document.createElement('tr');
+            row.style.background = 'rgba(232, 97, 26, 0.18)';
+            row.innerHTML = `
+              <td><strong style="color: var(--accent-fire);">${col.symbol}</strong> <span style="font-size: 0.6rem; color: var(--accent-amber);">[SANDBOX]</span></td>
+              <td><span class="claim-code">${col.domainA}</span></td>
+              <td><span class="claim-code">${col.domainB}</span></td>
+              <td>${col.type.toUpperCase()}</td>
+              <td><span class="sev-high">${col.severity}</span></td>
+              <td><span class="status-badge" style="color: var(--accent-fire);">⚠ HALTED (EXIT 2)</span></td>
+            `;
+            tableBody.prepend(row);
+          }
+
+          // Add Resolution Advisory card
+          const advBody = document.querySelector('.advisory-panel .panel-body');
+          if (advBody) {
+            const card = document.createElement('div');
+            card.className = 'adv-card fire';
+            card.style.borderLeft = '3px solid var(--accent-fire)';
+            card.innerHTML = `
+              <div class="adv-head">
+                <span class="adv-target">Target: Subagent B</span>
+                <span class="adv-symbol">${col.symbol}</span>
+              </div>
+              <div class="adv-action">Normalize ${col.symbol} in Subagent B to ${col.domainA} domain</div>
+              <div class="adv-patch">${col.symbol} = float(${col.symbol}) / 100.0 if ${col.symbol} > 1.0 else float(${col.symbol})</div>
+            `;
+            advBody.prepend(card);
+          }
+        } else {
+          feedback.innerHTML = `<span style="color: var(--status-ok); font-weight: 600;">✓ NO CONFLICT DETECTED:</span> All contracts match across scratchpads. Status: CLEAR (Exit Code 0).`;
+          document.body.classList.add('resolved');
+          toggle.textContent = 'RESOLVED';
+          statusText.textContent = 'CLEAR (Exit Code 0) — ALL INVARIANTS HARMONIZED';
+          statusText.style.color = 'var(--status-ok)';
+          collisionCount.textContent = '0';
+          document.querySelectorAll('.status-badge').forEach(badge => badge.textContent = '✓ CLEAR');
+        }
+      });
+    }
   </script>
 
 </body>

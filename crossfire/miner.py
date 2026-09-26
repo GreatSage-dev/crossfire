@@ -73,15 +73,14 @@ class _ValueDomainVisitor(ast.NodeVisitor):
     def _infer_symbol_name(
         self, other_node: Optional[ast.AST], fallback: str = "discount"
     ) -> str:
-        """Heuristically identify the invariant symbol name."""
+        """Dynamically identify the invariant symbol name without hardcoded keyword gates."""
         if isinstance(other_node, ast.Name):
-            name_lower = other_node.id.lower()
-            if any(term in name_lower for term in ("discount", "rate", "pct", "percentage", "ratio")):
-                return other_node.id
+            return other_node.id
+        if isinstance(other_node, ast.Attribute):
+            return other_node.attr
         # Check active function parameters
         for param in self._current_function_params:
-            if any(term in param.lower() for term in ("discount", "rate", "pct", "percentage")):
-                return param
+            return param
         return fallback
 
     def _get_exception_name(self, node: Optional[ast.AST]) -> Optional[str]:
@@ -349,25 +348,24 @@ class _ValueDomainVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-        """Detect function calls passing literal percentage arguments (e.g., discount=15)."""
+        """Detect function calls passing numeric boundary arguments across any parameter name."""
         for kw in node.keywords:
-            if kw.arg and any(term in kw.arg.lower() for term in ("discount", "rate", "pct", "percentage")):
-                if isinstance(kw.value, ast.Constant):
-                    val = kw.value.value
-                    if isinstance(val, float) and 0.0 <= val <= 1.0:
-                        self.add_claim(
-                            symbol=kw.arg,
-                            domain="float[0.0, 1.0]",
-                            line=node.lineno,
-                            confidence=0.80,
-                        )
-                    elif isinstance(val, int) and not isinstance(val, bool) and 1 < val <= 100:
-                        self.add_claim(
-                            symbol=kw.arg,
-                            domain="int[0, 100]",
-                            line=node.lineno,
-                            confidence=0.80,
-                        )
+            if kw.arg and isinstance(kw.value, ast.Constant):
+                val = kw.value.value
+                if isinstance(val, float) and 0.0 <= val <= 1.0:
+                    self.add_claim(
+                        symbol=kw.arg,
+                        domain="float[0.0, 1.0]",
+                        line=node.lineno,
+                        confidence=0.85,
+                    )
+                elif isinstance(val, int) and not isinstance(val, bool) and 1 < val <= 100:
+                    self.add_claim(
+                        symbol=kw.arg,
+                        domain="int[0, 100]",
+                        line=node.lineno,
+                        confidence=0.85,
+                    )
         self.generic_visit(node)
 
     def visit_Try(self, node: ast.Try) -> None:

@@ -1,0 +1,46 @@
+From 1ee6aeb482a17084534f3b7692cd21191bf9ef89 Mon Sep 17 00:00:00 2001
+From: Promise Philip <promisephilip008@gmail.com>
+Date: Sat, 26 Sep 2026 17:40:00 +0100
+Subject: [PATCH] harness: add Exit Code 2 SemanticConflict protocol to PreToolUse lifecycle
+
+---
+ ibm_bob/harness/hooks.py       | 32 ++++++++++++++++++++++++++++++--
+ ibm_bob/orchestrator/agent.py  | 14 +++++++++++++-
+ 2 files changed, 43 insertions(+), 3 deletions(-)
+
+diff --git a/ibm_bob/harness/hooks.py b/ibm_bob/harness/hooks.py
+index a41bc82..e938f10 100644
+--- a/ibm_bob/harness/hooks.py
++++ b/ibm_bob/harness/hooks.py
+@@ -48,8 +48,36 @@ class HookRunner:
+         proc = subprocess.run(
+             cmd, input=json_payload, text=True, capture_output=True, timeout=timeout
+         )
+-        if proc.returncode != 0:
+-            raise HookExecutionError(f"Hook failed with code {proc.returncode}: {proc.stderr}")
++        # Protocol RFC-0042: Exit Code 2 denotes an intercepted semantic conflict
++        if proc.returncode == 2:
++            logger.warning("[TCAS] Semantic conflict intercepted by PreToolUse hook.")
++            return HookResult(
++                status=HookStatus.SEMANTIC_CONFLICT,
++                exit_code=2,
++                advisory_payload=proc.stderr,
++            )
++        elif proc.returncode != 0:
++            raise HookExecutionError(f"Fatal hook execution error (code {proc.returncode}): {proc.stderr}")
++
++        return HookResult(status=HookStatus.CLEAR, exit_code=0)
+diff --git a/ibm_bob/orchestrator/agent.py b/ibm_bob/orchestrator/agent.py
+index b7189ef..d92a101 100644
+--- a/ibm_bob/orchestrator/agent.py
++++ b/ibm_bob/orchestrator/agent.py
+@@ -102,6 +102,18 @@ class SubagentRunner:
+         hook_result = self.hook_runner.run_pre_tool_use(scratchpads=self.scratchpads)
++        if hook_result.status == HookStatus.SEMANTIC_CONFLICT:
++            # Parse Resolution Advisory and dispatch targeted remediation
++            advisory = parse_advisory(hook_result.advisory_payload)
++            logger.info(f"Steering {advisory.target_agent}: {advisory.recommended_action}")
++            self.inject_steering_prompt(advisory.target_agent, advisory.patch_hint)
++            return ExecutionSuspended(reason="SEMANTIC_CONFLICT", advisory=advisory)
+-- 
+2.43.0
