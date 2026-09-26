@@ -1,9 +1,11 @@
 # CROSSFIRE: Air Traffic Collision Avoidance System (TCAS) for Parallel AI Agents
 
-[![Deterministic Tests](https://img.shields.io/badge/pytest-16%20passed%20%5B0.41s%5D-brightgreen?style=flat-square)](file:///tests/)
-[![Bob IDE Verified](https://img.shields.io/badge/IBM%20Bob%202.0-Verified%20Session-0062FF?style=flat-square)](file:///bob_sessions/)
-[![Exit Code Protocol](https://img.shields.io/badge/PreToolUse-Exit%20Code%202%20Halt-E8611A?style=flat-square)](file:///crossfire/hook.py)
-[![Zero-Dependency Receipt](https://img.shields.io/badge/run__receipt.py-4.50ms%20Proof-brightgreen?style=flat-square)](run_receipt.py)
+[![Live Web Demo](https://img.shields.io/badge/Live%20Demo-crossfire--production.vercel.app-E8611A?style=flat-square&logo=vercel)](https://crossfire-production.vercel.app/)
+[![Deterministic Tests](https://img.shields.io/badge/pytest-17%20passed%20%5B0.42s%5D-brightgreen?style=flat-square)](tests/)
+[![Mutation Score](https://img.shields.io/badge/Mutation%20Score-8%2F8%20Killed%20%5B100%25%5D-brightgreen?style=flat-square)](tests/mutation_lab.py)
+[![Bob IDE Verified](https://img.shields.io/badge/IBM%20Bob%202.0-Verified%20Session-0062FF?style=flat-square)](bob_sessions/)
+[![Exit Code Protocol](https://img.shields.io/badge/PreToolUse-Exit%20Code%202%20Halt-E8611A?style=flat-square)](crossfire/hook.py)
+[![Zero-Dependency Receipt](https://img.shields.io/badge/run__receipt.py-17.19ms%20Proof-brightgreen?style=flat-square)](run_receipt.py)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 
 $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrightarrow \text{\textbf{COLLIDE (TCAS)}} \longrightarrow \text{\textbf{HALT (EXIT 2)}} \longrightarrow \text{\textbf{AUTO-STEER}}$$
@@ -14,10 +16,11 @@ $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrigh
 
 ## The Dual Ingress Doors (For Judges)
 
-### Ingress Path A: The Glass Cockpit (UI Console & Operations Room)
-Explore the live operational interfaces in [`ui/`](ui/):
-* **Landing Interface ([`ui/index.html`](ui/index.html)):** Growaz-inspired command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP `clip-path` card entrances, and magnetic micro-interactions.
-* **Operations Dashboard ([`ui/dashboard.html`](ui/dashboard.html)):** Uncongested bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, and real-time TCAS sweep radar.
+### Ingress Path A: The Glass Cockpit (Live Deployed Web Console)
+* 🌐 **Live Web Demo:** [https://crossfire-production.vercel.app](https://crossfire-production.vercel.app/)
+* 🛰️ **Live Operations Console:** [https://crossfire-production.vercel.app/dashboard](https://crossfire-production.vercel.app/dashboard)
+* **Landing Interface ([`index.html`](index.html)):** Growaz-inspired command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP `clip-path` card entrances, and magnetic micro-interactions.
+* **Operations Dashboard ([`dashboard.html`](dashboard.html)):** Uncongested bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, and real-time TCAS sweep radar.
 * **Interactive Live Stream:** Connects live to `crossfire live` over WebSocket (`ws://127.0.0.1:8765`), updating radar sweeps and threat vectors on file modification, with automatic offline simulation fallback.
 
 ### Ingress Path B: The Sub-Second Terminal Drey (Zero Dependencies)
