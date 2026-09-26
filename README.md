@@ -13,13 +13,11 @@ $$\text{\textbf{INTERCEPT}} \longrightarrow \text{\textbf{MINE (AST)}} \longrigh
 
 ## The Dual Ingress Doors (For Judges)
 
-### Ingress Path A: The 15-Second Glass Cockpit
-Open [`ui/index.html`](ui/index.html) in any modern browser:
-* **Liquid Logo (`logoShader`):** WebGL GLSL procedural liquid metal shader for the CROSSFIRE emblem, reacting dynamically to mouse coordinates with specular highlights.
-* **Shader Gradient (`shadergradient`):** 3D organic mesh/waterPlane in obsidian with fire-orange embers (`#0D0D0D`, `#161616`, `#E8611A`) as the living background.
-* **Liquid Glass JS (`liquidglass`):** Real WebGL edge refraction with normal-map chromatic dispersion on all collision cards and HUD readouts.
-* **Three.js 3D Volumetric Radar Globe:** Interactive 3D airspace globe with orbiting agent flight vectors, altitude waypoints, and the active hazard intercept cone.
-* **Interactive State Toggle:** Toggle between `[COLLISION DETECTED]` and `[RESOLVED & AUTO-STEERED]` to witness the real-time resolution telemetry.
+### Ingress Path A: The Glass Cockpit (UI Console & Operations Room)
+Explore the live operational interfaces in [`ui/`](ui/):
+* **Landing Interface ([`ui/index.html`](ui/index.html)):** Growaz-inspired command aesthetic with warm atmospheric depth (`#0D0D0D`, `#161616`, `#E8611A`, `#F5A623`), Lenis smooth scrolling, staggered GSAP `clip-path` card entrances, and magnetic micro-interactions.
+* **Operations Dashboard ([`ui/dashboard.html`](ui/dashboard.html)):** Uncongested bento grid with KPI metric cards, active agent telemetry badges, live Assumption Ledger, terminal event stream, and real-time TCAS sweep radar.
+* **Interactive State Toggle:** Toggle between `[COLLISION DETECTED]` and `[RESOLVED & ALIGNED]` to experience live collision remediation, auto-steering patch application, and instant zero-collision radar clearing.
 
 ### Ingress Path B: The Sub-Second Terminal Drey
 Run the deterministic verification harness across all synthetic subagent scratchpads:
@@ -130,7 +128,7 @@ In compliance with the official IBM Bob 2.0 Hackathon requirements, all Bob IDE 
 | **Collision Detection Engine** | **Production-Grade** | Graph intersection of symbol mutation cones vs invocation cones across 3 collision classes. |
 | **PreToolUse Hook Contract** | **Production-Grade** | Complies with Bob 2.0's fail-closed specification (exit code 2 halts runner). |
 | **Closed-Loop Resolution Patching** | **Production-Grade** | Imperative patch generation with AST boundary normalization. |
-| **Glass Cockpit UI** | **Production-Grade** | WebGL GLSL shaders (Liquid Logo), Three.js 3D Radar Globe, and optical edge refraction. |
+| **Glass Cockpit UI** | **Production-Grade** | Growaz-inspired landing page, uncongested bento dashboard, SVG TCAS radar, and Lenis/GSAP scroll physics. |
 | **Dynamic Runtime Reflection** | **Out of Scope** | Dynamic runtime string evaluation (`getattr(mod, f"dyn_{name}")`) is intentionally excluded from static AST analysis. |
 
 ---

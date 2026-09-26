@@ -112,8 +112,8 @@ def run_hook(
         except json.JSONDecodeError:
             pass
 
-    # Read stdin if payload not explicitly provided
-    if not raw_payload and not sys.stdin.isatty():
+    # Read stdin only if payload not explicitly provided and no CLI args supplied
+    if not raw_payload and not cli_args and not sys.stdin.isatty():
         try:
             stdin_content = sys.stdin.read().strip()
             if stdin_content:

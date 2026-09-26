@@ -5,12 +5,27 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "crossfire"
 version = "0.1.0"
-description = "Invariant Claim Mining and Collision Detection Core"
-authors = [{ name = "CROSSFIRE Core Team" }]
+description = "TCAS-grade Collision Avoidance for Parallel AI Agents in IBM Bob 2.0"
+authors = [{ name = "Team Mrsage (Promise Philip)", email = "promisephilip008@gmail.com" }]
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0.0",
+    "click>=8.0.0",
+    "rich>=13.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "websockets>=11.0",
+]
+
+[project.scripts]
+crossfire = "crossfire.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["crossfire*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

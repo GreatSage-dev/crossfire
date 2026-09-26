@@ -849,6 +849,17 @@
     const toggle = document.getElementById('statusToggle');
     const statusText = document.getElementById('statusText');
     const collisionCount = document.getElementById('collisionCount');
+    const terminalBody = document.querySelector('.terminal-body');
+
+    const initialTerminalLogs = terminalBody.innerHTML;
+    const resolvedTerminalLogs = initialTerminalLogs + `
+<span class="log-t">[08:42:04]</span> Applying TCAS Resolution Advisories...
+<span class="log-t">[08:42:04]</span>   <span class="log-a">✓</span> discount normalized to float[0.0, 1.0] (Agent B)
+<span class="log-t">[08:42:04]</span>   <span class="log-a">✓</span> evict_session migrated to async coroutine (Agent B)
+<span class="log-t">[08:42:04]</span>   <span class="log-a">✓</span> get_item updated to raise ItemNotFoundError (Agent A)
+<span class="log-t">[08:42:05]</span> Re-running crossfire collision verification...
+<span class="log-t">[08:42:05]</span>   <span style="color: var(--status-ok)">✓ ALL CONTRACTS RECONCILED. 0 COLLISIONS DETECTED.</span>
+<span class="log-t">[08:42:05]</span> Flight paths clear. Agent execution RESUMED (Exit Code: 0).`;
 
     toggle.addEventListener('click', () => {
       document.body.classList.toggle('resolved');
@@ -858,6 +869,15 @@
         ? 'RESOLVED — 0 COLLISIONS ACTIVE'
         : 'ACTIVE — 3 COLLISIONS DETECTED';
       collisionCount.textContent = resolved ? '0' : '3';
+
+      // Update table badges
+      document.querySelectorAll('.status-badge').forEach(badge => {
+        badge.textContent = resolved ? '✓ CLEAR' : '⚠ HALTED';
+      });
+
+      // Update terminal feed
+      terminalBody.innerHTML = resolved ? resolvedTerminalLogs : initialTerminalLogs;
+      terminalBody.scrollTop = terminalBody.scrollHeight;
     });
   </script>
 

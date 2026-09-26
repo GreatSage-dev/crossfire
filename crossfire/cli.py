@@ -15,6 +15,41 @@ from crossfire.resolver import generate_advisory
 console = Console()
 
 
+def _analyze_directory(path: Path) -> tuple[list[CollisionVector], list]:
+    """Scan directory for agent_a / agent_b scratchpad pairs and compute collisions."""
+    files = sorted(path.glob("*.py"))
+    agent_a_files = [f for f in files if "agent_a" in f.name.lower()]
+    agent_b_files = [f for f in files if "agent_b" in f.name.lower()]
+
+    if not agent_a_files or not agent_b_files:
+        return [], []
+
+    total_collisions: list[CollisionVector] = []
+    advisories = []
+
+    for fa in agent_a_files:
+        stem_a = fa.stem.replace("agent_a_", "")
+        fb_matches = [f for f in agent_b_files if f.stem.replace("agent_b_", "") == stem_a]
+        if not fb_matches:
+            continue
+        fb = fb_matches[0]
+
+        source_a = fa.read_text(encoding="utf-8")
+        source_b = fb.read_text(encoding="utf-8")
+
+        claims_a = extract_claims(source_a, agent_id="agent_a")
+        claims_b = extract_claims(source_b, agent_id="agent_b")
+
+        cols = detect_collisions(claims_a, claims_b)
+        total_collisions.extend(cols)
+        for c in cols:
+            advisories.append(generate_advisory(c))
+
+    # Sort advisories by severity descending
+    advisories.sort(key=lambda adv: adv.vector.severity, reverse=True)
+    return total_collisions, advisories
+
+
 @click.group()
 def cli() -> None:
     """CROSSFIRE: Air Traffic Collision Avoidance System for Parallel AI Agents."""
@@ -37,35 +72,14 @@ def cli() -> None:
 )
 def verify(path: Path, quiet: bool) -> None:
     """Run deterministic TCAS collision analysis across subagent scratchpads."""
-    files = sorted(path.glob("*.py"))
-    agent_a_files = [f for f in files if "agent_a" in f.name.lower()]
-    agent_b_files = [f for f in files if "agent_b" in f.name.lower()]
+    total_collisions, advisories = _analyze_directory(path)
 
-    if not agent_a_files or not agent_b_files:
-        console.print(f"[yellow]Warning: Could not find paired agent_a/agent_b scratchpads in {path}[/yellow]")
-        sys.exit(0)
-
-    total_collisions: list[CollisionVector] = []
-    advisories = []
-
-    for fa in agent_a_files:
-        stem_a = fa.stem.replace("agent_a_", "")
-        # Find matching agent_b file
-        fb_matches = [f for f in agent_b_files if f.stem.replace("agent_b_", "") == stem_a]
-        if not fb_matches:
-            continue
-        fb = fb_matches[0]
-
-        source_a = fa.read_text(encoding="utf-8")
-        source_b = fb.read_text(encoding="utf-8")
-
-        claims_a = extract_claims(source_a, agent_id="agent_a")
-        claims_b = extract_claims(source_b, agent_id="agent_b")
-
-        cols = detect_collisions(claims_a, claims_b)
-        total_collisions.extend(cols)
-        for c in cols:
-            advisories.append(generate_advisory(c))
+    if not total_collisions and not advisories:
+        files = list(path.glob("*.py"))
+        agent_pairs_exist = any("agent_a" in f.name for f in files) and any("agent_b" in f.name for f in files)
+        if not agent_pairs_exist:
+            console.print(f"[yellow]Warning: Could not find paired agent_a/agent_b scratchpads in {path}[/yellow]")
+            sys.exit(0)
 
     if not quiet:
         console.print("")
@@ -77,7 +91,7 @@ def verify(path: Path, quiet: bool) -> None:
         table.add_column("Symbol", style="bold #F0EDE8")
         table.add_column("Collision Class", style="#E8611A")
         table.add_column("Severity", justify="right")
-        table.add_column("Target Agent", style="#F5A623")
+        table.add_column("Target", style="#F5A623")
         table.add_column("Halted", justify="center")
 
         for adv in advisories:
@@ -95,12 +109,12 @@ def verify(path: Path, quiet: bool) -> None:
         console.print("")
 
         if advisories:
-            last = advisories[-1]
+            top_adv = advisories[0]  # Highest severity advisory
             panel = Panel(
-                f"[bold #E8611A]ACTION:[/bold #E8611A] {last.recommended_action}\n"
-                f"[bold #F5A623]TARGET AGENT:[/bold #F5A623] {last.target_agent}\n"
-                f"[bold #F0EDE8]PATCH HINT:[/bold #F0EDE8]\n[dim]{last.patch_hint}[/dim]",
-                title=f"[bold #E8611A]TCAS RESOLUTION ADVISORY: {last.vector.claim_a.symbol}[/bold #E8611A]",
+                f"[bold #E8611A]ACTION:[/bold #E8611A] {top_adv.recommended_action}\n"
+                f"[bold #F5A623]TARGET AGENT:[/bold #F5A623] {top_adv.target_agent}\n"
+                f"[bold #F0EDE8]PATCH HINT:[/bold #F0EDE8]\n[dim]{top_adv.patch_hint}[/dim]",
+                title=f"[bold #E8611A]HIGHEST SEVERITY ADVISORY: {top_adv.vector.claim_a.symbol} ({top_adv.vector.severity:.2f})[/bold #E8611A]",
                 border_style="#E8611A",
             )
             console.print(panel)
@@ -112,29 +126,38 @@ def verify(path: Path, quiet: bool) -> None:
 
 
 @cli.command("report")
-def report() -> None:
-    """Print the last TCAS Resolution Advisory generated by CROSSFIRE."""
-    # Run verification quietly to get the latest advisory
-    path = Path("tests/fixtures")
-    fa = path / "agent_a_discount.py"
-    fb = path / "agent_b_discount.py"
-    if fa.exists() and fb.exists():
-        claims_a = extract_claims(fa.read_text(encoding="utf-8"), agent_id="agent_a")
-        claims_b = extract_claims(fb.read_text(encoding="utf-8"), agent_id="agent_b")
-        cols = detect_collisions(claims_a, claims_b)
-        if cols:
-            adv = generate_advisory(cols[0])
-            panel = Panel(
-                f"[bold #E8611A]CLASS:[/bold #E8611A] {adv.vector.collision_class.upper()} (Severity: {adv.vector.severity:.2f})\n"
-                f"[bold #E8611A]ACTION:[/bold #E8611A] {adv.recommended_action}\n"
-                f"[bold #F5A623]TARGET AGENT:[/bold #F5A623] {adv.target_agent}\n"
-                f"[bold #F0EDE8]PATCH HINT:[/bold #F0EDE8]\n[dim]{adv.patch_hint}[/dim]",
-                title=f"[bold #E8611A]LATEST TCAS ADVISORY: {adv.vector.claim_a.symbol}[/bold #E8611A]",
-                border_style="#E8611A",
-            )
-            console.print(panel)
-            return
-    console.print("[green]All flight paths clear. No active advisories.[/green]")
+@click.option(
+    "--path",
+    "-p",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=Path("tests/fixtures"),
+    help="Directory containing agent scratchpads to inspect.",
+)
+@click.option(
+    "--all",
+    "-a",
+    is_flag=True,
+    help="Display all active advisories instead of just highest severity.",
+)
+def report(path: Path, all: bool) -> None:
+    """Print the active TCAS Resolution Advisories generated by CROSSFIRE."""
+    total_collisions, advisories = _analyze_directory(path)
+
+    if not advisories:
+        console.print("[green]All flight paths clear. No active advisories.[/green]")
+        return
+
+    items_to_show = advisories if all else advisories[:1]
+    for adv in items_to_show:
+        panel = Panel(
+            f"[bold #E8611A]CLASS:[/bold #E8611A] {adv.vector.collision_class.upper()} (Severity: {adv.vector.severity:.2f})\n"
+            f"[bold #E8611A]ACTION:[/bold #E8611A] {adv.recommended_action}\n"
+            f"[bold #F5A623]TARGET AGENT:[/bold #F5A623] {adv.target_agent}\n"
+            f"[bold #F0EDE8]PATCH HINT:[/bold #F0EDE8]\n[dim]{adv.patch_hint}[/dim]",
+            title=f"[bold #E8611A]TCAS ADVISORY: {adv.vector.claim_a.symbol}[/bold #E8611A]",
+            border_style="#E8611A",
+        )
+        console.print(panel)
 
 
 def main() -> None:
